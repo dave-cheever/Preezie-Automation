@@ -18,6 +18,7 @@ Scenario Outline: promptGlobalFilter should match expected Safe for: <content>
   And path '/cms/agents/trace', chat.traceId
   And header Authorization = 'Bearer ' + cmsIdToken
   When method get
+  * print 'cmsIdToken: ', cmsIdToken
   Then status 200
 
   * def traceData = response.data
