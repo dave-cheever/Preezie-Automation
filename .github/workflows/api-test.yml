@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+      FIREBASE_EMAIL: ${{ secrets.FIREBASE_EMAIL }}
+      FIREBASE_PASSWORD: ${{ secrets.FIREBASE_PASSWORD }}
+      CMS_BASE_URL: ${{ secrets.CMS_BASE_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
