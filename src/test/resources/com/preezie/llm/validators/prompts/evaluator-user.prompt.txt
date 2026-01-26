@@ -1,0 +1,48 @@
+INPUTS:
+
+PromptArguments:
+{{PromptArguments}}
+
+LLMRequestFormattedPrompt:
+{{LLMRequestFormattedPrompt}}
+
+UserMessage:
+{{UserMessage}}
+
+AssistantResponse (ResponseLLM):
+{{ResponseLLM}}
+
+TASK:
+
+1. Infer the intended meaning and constraints implied by PromptArguments and LLMRequestFormattedPrompt.
+2. Determine whether AssistantResponse is:
+   - Semantically aligned with the intended interpretation
+   - Faithful to the given rules
+   - Free from hallucinated or invented information
+3. Judge closeness of meaning, not wording.
+
+SCORING RULES (0–5):
+- relevance: answers the user’s intent
+- faithfulness: no hallucinations or invented facts
+- instructionCompliance: follows PromptArguments and formatting rules
+- semanticCloseness: meaning matches expected interpretation
+
+PASS CONDITIONS:
+- relevance >= 4
+- faithfulness >= 4
+- instructionCompliance >= 4
+- semanticCloseness >= 4
+
+RETURN ONLY THIS JSON STRUCTURE:
+
+{
+  "pass": true | false,
+  "scores": {
+    "relevance": number,
+    "faithfulness": number,
+    "instructionCompliance": number,
+    "semanticCloseness": number
+  },
+  "issues": [string],
+  "summary": "short explanation"
+}
