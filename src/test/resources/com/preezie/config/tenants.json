@@ -1,0 +1,8 @@
+{
+  "tenant_bluebungalow": {
+    "baseUrl": "https://dev-greenback-app-chat.azurewebsites.net",
+    "tenantId": "tnt_SGo2jAuIT6RT2kJ",
+    "websiteUrl": "https://bluebungalow.com.au/",
+    "cmsGatewayUrl": "https://dev-greenback-app-cms-gateway.azurewebsites.net"
+  }
+}
