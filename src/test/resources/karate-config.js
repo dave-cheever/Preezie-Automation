@@ -158,7 +158,7 @@ function fn() {
     );
   }
 
-  karate.set('cmsIdToken', config.cmsIdToken || null);
+  config.cmsIdToken = config.cmsIdToken || null;
 
   return config;
 }
