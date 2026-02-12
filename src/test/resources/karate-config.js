@@ -158,6 +158,34 @@ function fn() {
     );
   }
 
+  var usageModule = read('classpath:com/preezie/js/usage-report.js');
+    var usageReporter = usageModule.createUsageReporter
+      ? usageModule.createUsageReporter()
+      : usageModule();
+
+    karate.configure('afterScenario', function () {
+      try {
+        var u = karate.get('llmUsage');
+        if (u) {
+          usageReporter.record(u);
+          karate.log('LLM usage (request):', u);
+        }
+      } catch (e) {
+        karate.log('WARNING: failed to read/log llmUsage:', e);
+      }
+    });
+
+    karate.configure('afterFeature', function () {
+      try {
+        var summary = usageReporter.summary();
+        karate.log('LLM usage totals (feature):', summary && summary.totals);
+        karate.log('LLM usage averages_per_run (feature):', summary && summary.averages_per_run);
+        karate.log('LLM usage runs (feature):', summary && summary.runs);
+      } catch (e) {
+        karate.log('WARNING: failed to summarize/log LLM usage:', e);
+      }
+    });
+
   config.cmsIdToken = config.cmsIdToken || null;
 
   return config;

@@ -11,6 +11,5 @@ Scenario:
   * if (!found) karate.fail('promptGlobalFilter not found or invalid. agentName=promptGlobalFilter key=' + expectedKey)
 
   * def value = found.parsed[expectedKey]
-  * print 'promptGlobalFilter.found.parsed:', found.parsed
   * def result = { found: '#(found)', value: '#(value)' }
   * return result

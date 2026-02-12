@@ -6,13 +6,8 @@ Scenario:
   * def data = __arg.data
   * def agentName = __arg.agentName
   * def key = __arg.key
-  * print '--- extract-agent-json-key debug ---'
-  * print 'agentName arg:', '[' + agentName + ']'
-  * print 'typeof data:', typeof data
-  * print 'isArray(data):', Array.isArray(data)
-  * print 'data length:', (Array.isArray(data) ? data.length : 'n/a')
   * def first5 = Array.isArray(data) ? karate.map(data.slice(0,5), function(x){ return x && x.agentName ? '[' + x.agentName + ']' : '<no-agentName>' }) : []
-  * print 'first 5 agentNames:', first5
+
 
   * if (!data) karate.fail('data is null/undefined')
   * if (!agentName) karate.fail('agentName is null/undefined')
@@ -41,7 +36,6 @@ Scenario:
     return x && x.agentName !== undefined ? '[' + ('' + x.agentName) + ']' : '<no-agentName>';
   }));
   """
-  * print 'items length:', items.length
   * if (!items || items.length == 0) karate.fail('No items found for agentName=' + agentName)
 
   * def found = utils.findFirstValidPGF(items, key)
