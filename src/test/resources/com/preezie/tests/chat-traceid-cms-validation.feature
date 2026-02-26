@@ -25,6 +25,7 @@ Scenario Outline: promptGlobalFilter should match expected Safe for: <content>
   * def pgf = call read('classpath:com/preezie/services/cms/extract-agent-json-key.feature') { data: #(traceData), agentName: 'promptGlobalFilter', key: 'Safe' }
   * match pgf.value == <expectedSafe>
 
+  * eval karate.log('GetIntent start: ')
   # getIntent.Intent
   * def getIntentItems = karate.filter(traceData, function(x){ return x.agentName == 'getIntent' })
   * eval
@@ -50,24 +51,30 @@ Scenario Outline: promptGlobalFilter should match expected Safe for: <content>
         }
       }
       """
+  * eval karate.log('GetIntent end: ')
 
+  * eval karate.log('getIntentSummary Start: ')
   # getIntentSummary -> build evaluator context + call evaluator helper
   * def intentSummaryItems = karate.filter(traceData, function(x){ return x.agentName == 'getIntentSummary' })
   * def llmResponseText = utils.getFirstLLMResponseText(intentSummaryItems)
   * def promptArgumentsText = utils.getFirstLLMPromptArgumentsText(intentSummaryItems)
   * def llmRequestFormatedText = utils.getFirstLLMRequestFormatedText(intentSummaryItems)
 
-
+  * eval karate.log('getIntentSummary Start evalArgs: ')
   * def evalArgs =
   """
   {
     "PromptArguments": "#(promptArgumentsText)",
     "LLMRequestFormattedPrompt": "#(llmRequestFormatedText)",
     "UserMessage": "<content>",
-    "ResponseLLM": "#(llmResponseText)"
+    "ResponseLLM": "#(llmResponseText)",
+    "tenantId": "<tenantId>",
+    "content": "<content>"
   }
   """
+  * eval karate.log('getIntentSummary Start evalResult: ')
   * def evalResult = call read('classpath:com/preezie/llm/helpers/run-evaluator.feature') evalArgs
+  * eval karate.log('getIntentSummary end evalResult: ')
   * eval
     """
     var passed = evalResult && evalResult.validation && evalResult.validation.pass === true;
@@ -77,27 +84,36 @@ Scenario Outline: promptGlobalFilter should match expected Safe for: <content>
       karate.fail('getIntentSummary validation failed\\nResponseLLM:\\n' + responseLLM + '\\nValidation details:\\n' + details);
     }
     """
+#  * eval karate.log('getIntentSummary End: ')
+#
+#  * eval karate.log('Usage object:', JSON.stringify(evalResult.evaluatorResultOut.usage, null, 2))
+#  * def usageObj = evalResult.evaluatorResultOut.usage
+#  * eval karate.log('Usage object passed to usageObj:', JSON.stringify(usageObj))
+#  * call read('classpath:com/preezie/llm/helpers/record-usage.feature') { usage: #(usageObj), tenantId: <tenantId>, content: '<content>' }
+  * callonce read('classpath:com/preezie/llm/helpers/get-usage-summary.feature')
+
+#  * call read('classpath:com/preezie/llm/helpers/get-usage-summary.feature')
 
 
 Examples:
   | tenantId               | tenantName     | content                                                           | expectedSafe | intent        |
-#  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | milana white                                                      | true         | ProductSearch |
-#  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | milana ice blue                                                   | true         | ProductSearch |
-#  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | show me white linen pants in a size 14                            | true         | ProductSearch |
-#  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | Im looking for white jackets                                      | true         | ProductSearch |
-#  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | i dont like my arms, find me dresses that can cover my arms       | true         | ProductSearch |
-#  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | striped pants                                                     | true         | ProductSearch |
-#  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | Black wide leg jeans                                               | true         | ProductSearch |
-#  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | black maxi dress with floral pattern                              | true         | ProductSearch |
-#  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | Red plain dress                                                   | true         | ProductSearch |
-#  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | ackley earrings                                                   | true         | ProductSearch |
-#  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | rose gold earings                                                 | true         | ProductSearch |
-#  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | summer dresses                                                    | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | milana white                                                      | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | milana ice blue                                                   | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | show me white linen pants in a size 14                            | true         | ProductSearch |
+  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | Im looking for white jackets                                      | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | i dont like my arms, find me dresses that can cover my arms       | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | striped pants                                                     | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | Black wide leg jeans                                               | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | black maxi dress with floral pattern                              | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | Red plain dress                                                   | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | ackley earrings                                                   | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | rose gold earings                                                 | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | summer dresses                                                    | true         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | fun dress good for parties                                        | true         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | outfit for the beach                                               | true         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | doti sandals                                                      | true         | ProductSearch |
-  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | Glenda black dress                                                | true         | ProductSearch |
-  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | reading glasses                                                   | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | Glenda black dress                                                | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | reading glasses                                                   | true         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | teal dress                                                        | true         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | tie pants                                                         | true         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUTAS'  | Blue Bungalow  | green long sleeve dress                                           | true         | ProductSearch |

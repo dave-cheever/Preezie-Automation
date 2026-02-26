@@ -41,6 +41,16 @@ function fn() {
   }
 
   /**********************************************************
+   * Usage Tracker Configuration
+   **********************************************************/
+  config.usageTrackerUrl =
+    karate.properties['usage.tracker.url'] ||
+    java.lang.System.getProperty('usage.tracker.url') ||
+    java.lang.System.getenv('USAGE_TRACKER_URL') ||
+    dotenv['USAGE_TRACKER_URL'] ||
+    'http://localhost:8080';
+
+  /**********************************************************
    * LLM (OpenAI) Configuration (UNCHANGED BEHAVIOR)
    **********************************************************/
 
@@ -159,32 +169,40 @@ function fn() {
   }
 
   var usageModule = read('classpath:com/preezie/js/usage-report.js');
-    var usageReporter = usageModule.createUsageReporter
-      ? usageModule.createUsageReporter()
-      : usageModule();
+  var usageReporter = usageModule.createUsageReporter
+    ? usageModule.createUsageReporter()
+    : usageModule();
 
-    karate.configure('afterScenario', function () {
-      try {
-        var u = karate.get('llmUsage');
-        if (u) {
-          usageReporter.record(u);
-          karate.log('LLM usage (request):', u);
-        }
-      } catch (e) {
-        karate.log('WARNING: failed to read/log llmUsage:', e);
+  karate.configure('afterScenario', function () {
+    try {
+      var u = karate.get('llmUsage');
+      if (u) {
+        usageReporter.record(u);
+        karate.log('LLM usage (request):', u);
       }
-    });
+    } catch (e) {
+      karate.log('WARNING: failed to read/log llmUsage:', e);
+    }
+  });
 
-    karate.configure('afterFeature', function () {
+  karate.configure('afterFeature', function () {
+    try {
+      var summary = usageReporter.summary();
+      karate.log('LLM usage totals (feature):', summary && summary.totals);
+      karate.log('LLM usage averages_per_run (feature):', summary && summary.averages_per_run);
+      karate.log('LLM usage runs (feature):', summary && summary.runs);
+
+      // Call the usage summary feature
       try {
-        var summary = usageReporter.summary();
-        karate.log('LLM usage totals (feature):', summary && summary.totals);
-        karate.log('LLM usage averages_per_run (feature):', summary && summary.averages_per_run);
-        karate.log('LLM usage runs (feature):', summary && summary.runs);
+        karate.call('classpath:com/preezie/llm/helpers/get-usage-summary.feature');
       } catch (e) {
-        karate.log('WARNING: failed to summarize/log LLM usage:', e);
+        karate.log('Warning: Could not fetch usage summary:', e.message || e);
       }
-    });
+    } catch (e) {
+      karate.log('WARNING: failed to summarize/log LLM usage:', e);
+    }
+  });
+
 
   config.cmsIdToken = config.cmsIdToken || null;
 
