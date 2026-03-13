@@ -46,20 +46,21 @@ Scenario:
     """
 
   # Record usage if present in response (fail-safe)
-  * def usageData = null
   * eval
     """
     if (evaluatorResult && evaluatorResult.usage) {
-      karate.log('qwertyTokens:', JSON.stringify(evaluatorResult.usage.completion_tokens));
-      karate.set('usageData', {
-        prompt_tokens: evaluatorResult.usage.prompt_tokens || 0,
-        completion_tokens: evaluatorResult.usage.completion_tokens || 0,
-        total_tokens: evaluatorResult.usage.total_tokens || 0,
-        cached_tokens: evaluatorResult.usage.prompt_tokens_details ? evaluatorResult.usage.prompt_tokens_details.cached_tokens || 0 : 0,
-        audio_tokens: evaluatorResult.usage.prompt_tokens_details ? evaluatorResult.usage.prompt_tokens_details.audio_tokens || 0 : 0
-      });
+      karate.log('Recording usage - promptTokens:', evaluatorResult.usage.prompt_tokens, 'completionTokens:', evaluatorResult.usage.completion_tokens);
       try {
-        karate.call('classpath:com/preezie/llm/helpers/record-usage.feature', { usage: karate.get('usageData'), tenantId: __arg.tenantId, content: __arg.content });
+        karate.call('classpath:com/preezie/llm/helpers/record-usage.feature', {
+          tenantId: __arg.tenantId || '',
+          content: __arg.content || '',
+          modelName: 'gpt-4.1',
+          promptTokens: evaluatorResult.usage.prompt_tokens || 0,
+          completionTokens: evaluatorResult.usage.completion_tokens || 0,
+          totalTokens: evaluatorResult.usage.total_tokens || 0,
+          cachedTokens: evaluatorResult.usage.prompt_tokens_details ? evaluatorResult.usage.prompt_tokens_details.cached_tokens || 0 : 0,
+          audioTokens: evaluatorResult.usage.prompt_tokens_details ? evaluatorResult.usage.prompt_tokens_details.audio_tokens || 0 : 0
+        });
       } catch (e) {
         karate.log('Warning: Usage tracking failed:', e.message || e);
       }
