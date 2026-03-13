@@ -10,5 +10,4 @@ Scenario: retrieve token
   Then status 200
   * def token = response.access_token || response.token
   * match token != null
-  * print 'got token'
   * return { token: token }

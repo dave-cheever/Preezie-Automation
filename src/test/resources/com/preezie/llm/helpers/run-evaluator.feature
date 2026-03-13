@@ -45,6 +45,27 @@ Scenario:
     }
     """
 
+  # Record usage if present in response (fail-safe)
+  * eval
+    """
+    if (evaluatorResult && evaluatorResult.usage) {
+      karate.log('Recording usage - promptTokens:', evaluatorResult.usage.prompt_tokens, 'completionTokens:', evaluatorResult.usage.completion_tokens);
+      try {
+        karate.call('classpath:com/preezie/llm/helpers/record-usage.feature', {
+          tenantId: __arg.tenantId || '',
+          content: __arg.content || '',
+          modelName: 'gpt-4.1',
+          promptTokens: evaluatorResult.usage.prompt_tokens || 0,
+          completionTokens: evaluatorResult.usage.completion_tokens || 0,
+          totalTokens: evaluatorResult.usage.total_tokens || 0,
+          cachedTokens: evaluatorResult.usage.prompt_tokens_details ? evaluatorResult.usage.prompt_tokens_details.cached_tokens || 0 : 0,
+          audioTokens: evaluatorResult.usage.prompt_tokens_details ? evaluatorResult.usage.prompt_tokens_details.audio_tokens || 0 : 0
+        });
+      } catch (e) {
+        karate.log('Warning: Usage tracking failed:', e.message || e);
+      }
+    }
+    """
   * def validator = read('classpath:com/preezie/llm/validators/llm-evaluator.js')
   * def toValidate = evaluatorResult.parsedContent && typeof evaluatorResult.parsedContent === 'object' ? evaluatorResult.parsedContent : evaluatorResult
   * def validation = validator.validateLLMResponse(toValidate)
