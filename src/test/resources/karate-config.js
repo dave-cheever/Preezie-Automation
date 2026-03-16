@@ -41,6 +41,18 @@ function fn() {
   }
 
   /**********************************************************
+   * Google Sheets Configuration for Test Data
+   **********************************************************/
+  // Extract spreadsheet ID from URL or use direct ID
+  // URL format: https://docs.google.com/spreadsheets/d/1FV7pekpUKZ34VjDXuoslernJuGnx3jsjxJI5WkYsHVM/edit
+  config.googleSheetsId =
+    karate.properties['googleSheetsId'] ||
+    java.lang.System.getProperty('googleSheetsId') ||
+    java.lang.System.getenv('GOOGLE_SHEETS_ID') ||
+    dotenv['GOOGLE_SHEETS_ID'] ||
+    '1FV7pekpUKZ34VjDXuoslernJuGnx3jsjxJI5WkYsHVM'; // Your spreadsheet ID
+
+  /**********************************************************
    * Usage Tracker Configuration
    **********************************************************/
   config.usageTrackerUrl =
