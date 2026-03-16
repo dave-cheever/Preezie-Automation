@@ -7,7 +7,7 @@ on:
     branches: [ master ]
   workflow_dispatch:
   repository_dispatch:
-    types: [ run-google-sheet-test ]
+    types: [run-google-sheet-test]
 
 jobs:
   api-tests:
@@ -18,6 +18,7 @@ jobs:
       FIREBASE_EMAIL: ${{ secrets.FIREBASE_EMAIL }}
       FIREBASE_PASSWORD: ${{ secrets.FIREBASE_PASSWORD }}
       CMS_BASE_URL: ${{ secrets.CMS_BASE_URL }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,10 +31,44 @@ jobs:
           cache: 'maven'
 
       - name: Build and run tests
+        id: run_tests
         run: mvn -B -V -e -DskipTests=false test
 
       - name: Upload test reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-reports
           path: target/surefire-reports
+
+      - name: Update Google Sheet on success
+        if: success() && github.event_name == 'repository_dispatch'
+        run: |
+          curl -X POST "${{ secrets.APPS_SCRIPT_WEBAPP_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "spreadsheetId": "${{ github.event.client_payload.spreadsheetId }}",
+              "sheetName": "${{ github.event.client_payload.sheetName }}",
+              "runCell": "${{ github.event.client_payload.runCell }}",
+              "statusCell": "${{ github.event.client_payload.statusCell }}",
+              "lastRunCell": "${{ github.event.client_payload.lastRunCell }}",
+              "messageCell": "${{ github.event.client_payload.messageCell }}",
+              "status": "PASSED",
+              "message": "Automation test completed successfully."
+            }'
+
+      - name: Update Google Sheet on failure
+        if: failure() && github.event_name == 'repository_dispatch'
+        run: |
+          curl -X POST "${{ secrets.APPS_SCRIPT_WEBAPP_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "spreadsheetId": "${{ github.event.client_payload.spreadsheetId }}",
+              "sheetName": "${{ github.event.client_payload.sheetName }}",
+              "runCell": "${{ github.event.client_payload.runCell }}",
+              "statusCell": "${{ github.event.client_payload.statusCell }}",
+              "lastRunCell": "${{ github.event.client_payload.lastRunCell }}",
+              "messageCell": "${{ github.event.client_payload.messageCell }}",
+              "status": "FAILED",
+              "message": "Automation test failed."
+            }'
