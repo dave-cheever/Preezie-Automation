@@ -1,0 +1,24 @@
+{
+  "tenants": [
+    {
+      "tenantName": "Blue_Bungalow",
+      "tenantId": "tnt_pJ22NGJQXirUT0Y",
+      "dataFile": "Blue_Bungalow.csv",
+      "enabled": true
+    },
+    {
+      "tenantName": "JB_HIFI",
+      "tenantId": "tnt_sJaLLkeEMDVUI9G",
+      "dataFile": "JB_HIFI.csv",
+      "enabled": true
+    },
+    {
+      "tenantName": "PUMA",
+      "tenantId": "tnt_sZSeICB9hop90GD",
+
+      "dataFile": "PUMA.csv",
+      "enabled": true
+    }
+  ]
+}
+

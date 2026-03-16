@@ -1,0 +1,35 @@
+name: Run tests from Google Sheet
+
+on:
+  repository_dispatch:
+    types: [run-google-sheet-test]
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show payload
+        run: |
+          echo "Spreadsheet ID: ${{ github.event.client_payload.spreadsheetId }}"
+          echo "Spreadsheet URL: ${{ github.event.client_payload.spreadsheetUrl }}"
+          echo "Run cell: ${{ github.event.client_payload.runCell }}"
+
+      - name: Run automated tests
+        run: |
+          echo "Run your test command here"
+          # example:
+          # mvn test
+
+      - name: Reset runTest to FALSE
+        env:
+          GOOGLE_SHEETS_API_KEY: ${{ secrets.GOOGLE_SHEETS_API_KEY }}
+          SPREADSHEET_ID: ${{ github.event.client_payload.spreadsheetId }}
+        run: |
+          curl -X PUT \
+            "https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/config!B2?valueInputOption=USER_ENTERED&key=${GOOGLE_SHEETS_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{"range":"config!B2","majorDimension":"ROWS","values":[["FALSE"]]}'

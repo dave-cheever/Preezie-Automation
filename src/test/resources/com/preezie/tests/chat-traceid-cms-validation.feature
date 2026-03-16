@@ -1,4 +1,19 @@
 Feature: Chat API - TraceId (data driven) + CMS validation
+  # ============================================================================
+  # TEST DATA IS NOW IN EXTERNAL CSV FILES!
+  # ============================================================================
+  # Location: src/test/resources/testdata/
+  # Files:
+  #   - Blue_Bungalow.csv  (tenantId: tnt_pJ22NGJQXirUT0Y)
+  #   - JB_HIFI.csv        (tenantId: tnt_sJaLLkeEMDVUI9G)
+  #   - PUMA.csv           (tenantId: tnt_sZSeICB9hop90GD)
+  #   - tenant-config.json (enable/disable tenants)
+  #
+  # To run tenant-specific tests, use the new feature files in:
+  #   src/test/resources/com/preezie/tests/tenants/
+  #
+  # Or use TenantTestRunner.java
+  # ============================================================================
 
 Background:
   * def baseUrl = 'https://dev-greenback-app-chat.azurewebsites.net'
@@ -126,8 +141,8 @@ Examples:
 #  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | striped pants                                                     | true         | test |
 #  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | Black wide leg jeans                                               | false         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | black maxi dress with floral pattern                              | true         | ProductSearch |
-#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | Red plain dress                                                   | true         | ProductSearch |
-#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | ackley earrings                                                   | true         | ProductSearch |
+  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | Red plain dress                                                   | true         | ProductSearch |
+  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | ackley earrings                                                   | true         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | rose gold earings                                                 | true         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | summer dresses                                                    | true         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | fun dress good for parties                                        | true         | ProductSearch |
@@ -154,8 +169,8 @@ Examples:
 #  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | bottoms in a size 14                                               | true         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | wedges                                                            | true         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | lula dress                                                        | true         | ProductSearch |
-  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | olinda pants                                                      | true         | ProductSearch |
-  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | Sennia dress                                                      | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | olinda pants                                                      | true         | ProductSearch |
+#  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | Sennia dress                                                      | true         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | cayman dress                                                      | true         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | blouses                                                           | true         | ProductSearch |
 #  | 'tnt_pJ22NGJQXirUT0Y'  | Blue Bungalow  | leather clutches                                                  | true         | ProductSearch |

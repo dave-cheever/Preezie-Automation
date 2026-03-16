@@ -1,0 +1,88 @@
+content,expectedSafe,intent,enabled
+sony noise cancelling headphones,true,ProductSearch,true
+apple airpods pro,true,ProductSearch,true
+samsung galaxy buds,true,ProductSearch,false
+wireless bluetooth headphones,true,ProductSearch,false
+gaming headsets,true,ProductSearch,false
+sony wh 1000xm5 headphones,true,ProductSearch,false
+bose quietcomfort headphones,true,ProductSearch,false
+jbl wireless earbuds,true,ProductSearch,false
+over ear headphones,true,ProductSearch,false
+apple airpods max,true,ProductSearch,false
+smart tvs,true,ProductSearch,false
+samsung 4k tv,true,ProductSearch,false
+lg oled tv,true,ProductSearch,false
+sony bravia tv,true,ProductSearch,false
+televisions under 1000,true,ProductSearch,false
+65 inch smart tv,true,ProductSearch,false
+75 inch tv,true,ProductSearch,false
+4k ultra hd televisions,true,ProductSearch,false
+gaming televisions,true,ProductSearch,false
+android tv,true,ProductSearch,false
+playstation 5 console,true,ProductSearch,false
+xbox series x console,true,ProductSearch,false
+nintendo switch,true,ProductSearch,false
+gaming consoles,true,ProductSearch,false
+playstation 5 games,true,ProductSearch,false
+xbox games,true,ProductSearch,false
+nintendo switch games,true,ProductSearch,false
+gaming controllers,true,ProductSearch,false
+playstation dualsense controller,true,ProductSearch,false
+xbox wireless controller,true,ProductSearch,false
+gaming keyboards,true,ProductSearch,false
+gaming mice,true,ProductSearch,false
+pc gaming accessories,true,ProductSearch,false
+gaming monitors,true,ProductSearch,false
+144hz gaming monitor,true,ProductSearch,false
+ultrawide monitors,true,ProductSearch,false
+samsung gaming monitor,true,ProductSearch,false
+lg gaming monitor,true,ProductSearch,false
+apple macbook air,true,ProductSearch,false
+apple macbook pro,true,ProductSearch,false
+laptops under 1500,true,ProductSearch,false
+gaming laptops,true,ProductSearch,false
+windows laptops,true,ProductSearch,false
+ultrabooks,true,ProductSearch,false
+samsung galaxy s24,true,ProductSearch,false
+apple iphone 15,true,ProductSearch,false
+android smartphones,true,ProductSearch,false
+unlocked smartphones,true,ProductSearch,false
+mobile phones under 1000,true,ProductSearch,false
+phone cases,true,ProductSearch,false
+iphone cases,true,ProductSearch,false
+samsung phone cases,true,ProductSearch,false
+phone chargers,true,ProductSearch,false
+wireless phone chargers,true,ProductSearch,false
+portable bluetooth speakers,true,ProductSearch,false
+jbl bluetooth speaker,true,ProductSearch,false
+sony portable speaker,true,ProductSearch,false
+party speakers,true,ProductSearch,false
+smart speakers,true,ProductSearch,false
+google nest speaker,true,ProductSearch,false
+amazon echo smart speaker,true,ProductSearch,false
+soundbars,true,ProductSearch,false
+dolby atmos soundbars,true,ProductSearch,false
+samsung soundbar,true,ProductSearch,false
+lg soundbar,true,ProductSearch,false
+sony soundbar,true,ProductSearch,false
+digital cameras,true,ProductSearch,false
+mirrorless cameras,true,ProductSearch,false
+sony alpha cameras,true,ProductSearch,false
+gopro action cameras,true,ProductSearch,false
+camera tripods,true,ProductSearch,false
+camera lenses,true,ProductSearch,false
+drone cameras,true,ProductSearch,false
+tablets,true,ProductSearch,false
+apple ipad,true,ProductSearch,false
+ipad pro,true,ProductSearch,false
+android tablets,true,ProductSearch,false
+tablet keyboards,true,ProductSearch,false
+tablet stylus pens,true,ProductSearch,false
+streaming devices,true,ProductSearch,false
+google chromecast,true,ProductSearch,false
+apple tv,true,ProductSearch,false
+tv streaming devices,true,ProductSearch,false
+blu ray players,true,ProductSearch,false
+4k blu ray players,true,ProductSearch,false
+home theatre systems,true,ProductSearch,false
+
