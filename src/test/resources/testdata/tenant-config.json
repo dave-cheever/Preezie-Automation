@@ -10,14 +10,14 @@
       "tenantName": "JB_HIFI",
       "tenantId": "tnt_sJaLLkeEMDVUI9G",
       "dataFile": "JB_HIFI.csv",
-      "enabled": true
+      "enabled": false
     },
     {
       "tenantName": "PUMA",
       "tenantId": "tnt_sZSeICB9hop90GD",
 
       "dataFile": "PUMA.csv",
-      "enabled": true
+      "enabled": false
     }
   ]
 }
