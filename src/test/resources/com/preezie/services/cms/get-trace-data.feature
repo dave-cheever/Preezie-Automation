@@ -11,5 +11,5 @@ Scenario:
   When method get
   Then status 200
 
-  * def traceData = response.data
+  * def data = response.data
 
