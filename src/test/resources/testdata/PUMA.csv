@@ -1,0 +1,83 @@
+content,expectedSafe,intent,enabled
+red running shoes,true,ProductSearch,true
+black sneakers,true,ProductSearch,true
+white puma trainers,true,ProductSearch,false
+blue sports shoes,true,ProductSearch,false
+puma running shoes,true,ProductSearch,false
+mens training sneakers,true,ProductSearch,false
+womens running shoes,true,ProductSearch,false
+cushioned running sneakers,true,ProductSearch,false
+breathable training shoes,true,ProductSearch,false
+lightweight running shoes,true,ProductSearch,false
+puma ignite running shoes,true,ProductSearch,false
+puma velocity nitro,true,ProductSearch,false
+puma deviate nitro running shoes,true,ProductSearch,false
+puma rs x sneakers,true,ProductSearch,false
+puma suede classic shoes,true,ProductSearch,false
+puma future rider sneakers,true,ProductSearch,false
+puma cali sneakers,true,ProductSearch,false
+puma mayze sneakers,true,ProductSearch,false
+puma smash sneakers,true,ProductSearch,false
+puma slipstream sneakers,true,ProductSearch,false
+running shoes under 100,true,ProductSearch,false
+discounted puma sneakers,true,ProductSearch,false
+affordable training shoes,true,ProductSearch,false
+premium running shoes,true,ProductSearch,false
+puma shoes for gym training,true,ProductSearch,false
+basketball shoes,true,ProductSearch,false
+puma basketball sneakers,true,ProductSearch,false
+sports shirts,true,ProductSearch,false
+black workout shirt,true,ProductSearch,false
+white sports tee,true,ProductSearch,false
+puma training shirts,true,ProductSearch,false
+mens gym shirts,true,ProductSearch,false
+womens workout tops,true,ProductSearch,false
+running shirts,true,ProductSearch,false
+sports tank tops,true,ProductSearch,false
+performance training shirt,true,ProductSearch,false
+gym shirts under 50,true,ProductSearch,false
+athletic training tops,true,ProductSearch,false
+running shorts,true,ProductSearch,false
+gym shorts,true,ProductSearch,false
+black sports shorts,true,ProductSearch,false
+mens training shorts,true,ProductSearch,false
+womens running shorts,true,ProductSearch,false
+breathable running shorts,true,ProductSearch,false
+lightweight gym shorts,true,ProductSearch,false
+sports shorts under 80,true,ProductSearch,false
+athletic jogger pants,true,ProductSearch,false
+black training pants,true,ProductSearch,false
+grey sports joggers,true,ProductSearch,false
+workout leggings,true,ProductSearch,false
+running leggings,true,ProductSearch,false
+womens sports leggings,true,ProductSearch,false
+sports jackets,true,ProductSearch,false
+running windbreaker,true,ProductSearch,false
+training jacket,true,ProductSearch,false
+lightweight sports jacket,true,ProductSearch,false
+athletic hoodies,true,ProductSearch,false
+black gym hoodie,true,ProductSearch,false
+grey training hoodie,true,ProductSearch,false
+sports hoodie,true,ProductSearch,false
+mens athletic hoodie,true,ProductSearch,false
+womens gym hoodie,true,ProductSearch,false
+sports caps,true,ProductSearch,false
+running caps,true,ProductSearch,false
+puma logo cap,true,ProductSearch,false
+gym backpack,true,ProductSearch,false
+sports backpack,true,ProductSearch,false
+training gym bag,true,ProductSearch,false
+sports duffle bag,true,ProductSearch,false
+running socks,true,ProductSearch,false
+athletic socks,true,ProductSearch,false
+white sports socks,true,ProductSearch,false
+black training socks,true,ProductSearch,false
+sports bras,true,ProductSearch,false
+workout sports bra,true,ProductSearch,false
+womens training bra,true,ProductSearch,false
+gym sports bra,true,ProductSearch,false
+athletic clothing,true,ProductSearch,false
+sportswear,true,ProductSearch,false
+puma athletic apparel,true,ProductSearch,false
+running gear,true,ProductSearch,false
+gym training gear,true,ProductSearch,false
