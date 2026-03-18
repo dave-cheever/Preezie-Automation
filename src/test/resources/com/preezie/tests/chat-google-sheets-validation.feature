@@ -23,6 +23,9 @@ Background:
   * def authToken = karate.get('cmsIdToken')
 
 Scenario: Run all enabled tests from Google Sheets
+  # Validate CMS authentication token is available
+  * if (!authToken) karate.fail('CMS authentication token (cmsIdToken) is not configured. Please set FIREBASE_API_KEY, FIREBASE_EMAIL, and FIREBASE_PASSWORD environment variables.')
+
   # Load all enabled test data from Google Sheets
   * def allTestData = sheetsReader.getAllEnabledTestData(spreadsheetId)
   * karate.log('Loaded', allTestData.length, 'enabled test cases from Google Sheets')
