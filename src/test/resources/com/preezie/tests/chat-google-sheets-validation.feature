@@ -169,20 +169,41 @@ Scenario: Run all enabled tests from Google Sheets
         };
 
         var evalResult = karate.call('classpath:com/preezie/llm/helpers/run-evaluator.feature', evalArgs);
-        karate.log('Evaluator result - pass:', evalResult && evalResult.validation ? evalResult.validation.pass : 'undefined');
+        karate.log('Evaluator result - pass:', evalResult && evalResult.validationOut ? evalResult.validationOut.pass : 'undefined');
 
-        var passed = evalResult && evalResult.validation && evalResult.validation.pass === true;
+        var validation = evalResult ? evalResult.validationOut : null;
+        var passed = validation && validation.pass === true;
         if (!passed) {
           results.failed++;
+
+          // Build detailed error message for getIntentSummary
+          var errorDetails = '';
+          if (validation) {
+            if (validation.scores) {
+              errorDetails += 'Scores: relevance=' + (validation.scores.relevance || 'N/A') +
+                ', faithfulness=' + (validation.scores.faithfulness || 'N/A') +
+                ', instructionCompliance=' + (validation.scores.instructionCompliance || 'N/A') +
+                ', semanticCloseness=' + (validation.scores.semanticCloseness || 'N/A') + '. ';
+            }
+            if (validation.issues && validation.issues.length > 0) {
+              errorDetails += 'Issues: ' + validation.issues.join('; ') + '. ';
+            }
+            if (validation.summary) {
+              errorDetails += 'Summary: ' + validation.summary;
+            }
+          } else {
+            errorDetails = 'LLM evaluation failed or returned no validation';
+          }
+
           results.errors.push({
             tenant: tenantName,
             tenantId: tenantId,
             content: content,
             stage: 'getIntentSummary',
-            responseLLM: llmResponseText,
-            validation: evalResult && evalResult.validation ? evalResult.validation : 'no validation'
+            error: errorDetails,
+            responseLLM: llmResponseText ? (llmResponseText.length > 300 ? llmResponseText.substring(0, 300) + '...' : llmResponseText) : ''
           });
-          karate.log('[FAILED] getIntentSummary validation');
+          karate.log('[FAILED] getIntentSummary validation:', errorDetails);
           return;
         }
 
