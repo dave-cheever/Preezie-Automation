@@ -253,6 +253,42 @@ Scenario: Run all enabled tests from Google Sheets
   * def testResults = { totalTests: allTestData.length, passed: results.passed, failed: results.failed, errors: results.errors, spreadsheetId: spreadsheetId }
   * karate.set('testResultsForExport', testResults)
 
+  # Write results to JSON file for the test runner to read
+  * eval
+    """
+    try {
+      var FileWriter = Java.type('java.io.FileWriter');
+      var projectDir = java.lang.System.getProperty('user.dir');
+      var filePath = projectDir + '/target/test-results.json';
+
+      var jsonResults = {
+        totalTests: allTestData.length,
+        passed: results.passed,
+        failed: results.failed,
+        passRate: allTestData.length > 0 ? Math.round((results.passed / allTestData.length) * 100) : 0,
+        errors: results.errors.map(function(err) {
+          return {
+            tenantId: err.tenantId || '',
+            tenantName: err.tenant || 'Unknown',
+            content: err.content || '',
+            failedStage: err.stage || '',
+            expected: err.expected !== undefined ? String(err.expected) : '',
+            actual: err.actual !== undefined ? String(err.actual) : '',
+            errorMessage: err.error || '',
+            responseLLM: err.responseLLM || ''
+          };
+        })
+      };
+
+      var writer = new FileWriter(filePath);
+      writer.write(JSON.stringify(jsonResults, null, 2));
+      writer.close();
+      karate.log('Test results written to:', filePath);
+    } catch (e) {
+      karate.log('Warning: Could not write test results file:', e.message || e);
+    }
+    """
+
   # Build failure message for assertion
   * def failureMessage = results.failed > 0 ? results.failed + ' test(s) failed. Check logs above for details.' : 'All tests passed'
   * print failureMessage
