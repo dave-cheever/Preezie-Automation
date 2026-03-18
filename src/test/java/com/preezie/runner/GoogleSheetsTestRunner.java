@@ -305,22 +305,29 @@ public class GoogleSheetsTestRunner {
     
     private String buildErrorMessage(FailedTestData err) {
         StringBuilder sb = new StringBuilder();
+        
+        // For promptGlobalFilter and getIntent - show expected vs actual
         if (!err.expected.isEmpty() && !err.actual.isEmpty()) {
             sb.append("Expected: ").append(err.expected).append(", Actual: ").append(err.actual);
         }
+        
+        // Add the detailed error message (includes scores, issues, summary for getIntentSummary)
         if (!err.errorMessage.isEmpty()) {
             if (sb.length() > 0) sb.append(" | ");
             sb.append(err.errorMessage);
         }
-        if (!err.responseLLM.isEmpty() && err.failedStage.equalsIgnoreCase("getIntentSummary")) {
+        
+        // Add LLM response for getIntentSummary if not already in errorMessage
+        if (!err.responseLLM.isEmpty() && !err.errorMessage.contains("LLM")) {
             if (sb.length() > 0) sb.append(" | ");
-            // Truncate long LLM responses
+            // Truncate long LLM responses for display
             String llmText = err.responseLLM.length() > 200 
                 ? err.responseLLM.substring(0, 200) + "..." 
                 : err.responseLLM;
             sb.append("LLM Response: ").append(llmText);
         }
-        return sb.length() > 0 ? sb.toString() : "No additional details";
+        
+        return sb.length() > 0 ? sb.toString() : "Validation failed - check logs for details";
     }
     
     // Legacy method kept for backward compatibility
