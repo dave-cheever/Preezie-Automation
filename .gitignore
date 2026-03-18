@@ -38,3 +38,9 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Credentials - NEVER commit these ###
+credentials.json
+*.json.credentials
+*-credentials.json
+service-account*.json

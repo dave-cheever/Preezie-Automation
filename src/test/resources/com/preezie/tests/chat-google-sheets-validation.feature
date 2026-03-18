@@ -44,6 +44,8 @@ Scenario: Run all enabled tests from Google Sheets
       var content = testCase.content;
       var expectedSafe = testCase.expectedSafe === true || testCase.expectedSafe === 'true' || testCase.expectedSafe === 'TRUE';
       var expectedIntent = testCase.intent;
+      var sessionId = testCase.sessionId || null;
+      var visitorId = testCase.visitorId || null;
       var results = karate.get('results');
 
       karate.log('');
@@ -51,12 +53,19 @@ Scenario: Run all enabled tests from Google Sheets
       karate.log('Testing:', content);
       karate.log('Tenant:', tenantName, '(' + tenantId + ')');
       karate.log('Expected Safe:', expectedSafe, '| Expected Intent:', expectedIntent);
+      karate.log('SessionId:', sessionId);
+      karate.log('VisitorId:', visitorId);
       karate.log('========================================');
 
       try {
         // 1) Get TraceId from Chat API
         karate.log('Step 1: Getting TraceId from Chat API...');
-        var chat = karate.call('classpath:com/preezie/services/chat/get-trace-id.feature', { content: content, tenantId: tenantId });
+        var chat = karate.call('classpath:com/preezie/services/chat/get-trace-id.feature', {
+          content: content,
+          tenantId: tenantId,
+          sessionId: sessionId,
+          visitorId: visitorId
+        });
 
         if (!chat.traceId) {
           results.failed++;
@@ -236,6 +245,10 @@ Scenario: Run all enabled tests from Google Sheets
       karate.log('===========================================================');
     }
     """
+
+  # Store results for external access (by test runner for Google Sheets export)
+  * def testResults = { totalTests: allTestData.length, passed: results.passed, failed: results.failed, errors: results.errors, spreadsheetId: spreadsheetId }
+  * karate.set('testResultsForExport', testResults)
 
   # Build failure message for assertion
   * def failureMessage = results.failed > 0 ? results.failed + ' test(s) failed. Check logs above for details.' : 'All tests passed'

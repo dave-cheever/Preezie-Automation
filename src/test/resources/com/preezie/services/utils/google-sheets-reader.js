@@ -121,9 +121,38 @@
     return enabledTests;
   }
 
+  function getConfigValues(spreadsheetId) {
+    // Read key-value pairs from 'config' sheet
+    var lines = fetchSheetAsCsv(spreadsheetId, 'config');
+    var configObj = {};
+
+    if (lines && lines.length > 1) {
+      // Expecting columns: key, value
+      for (var i = 1; i < lines.length; i++) {
+        var values = parseCsvLine(lines[i]);
+        if (values.length >= 2 && values[0]) {
+          var key = values[0].trim();
+          var val = values[1] ? values[1].trim() : '';
+          configObj[key] = val;
+        }
+      }
+    }
+
+    karate.log('Loaded config values from Google Sheets:', JSON.stringify(configObj));
+    return configObj;
+  }
+
   function getAllEnabledTestData(spreadsheetId) {
     var tenants = getTenantConfig(spreadsheetId);
     var allTestData = [];
+
+    // Get global config values (sessionId, visitorId, etc.)
+    var globalConfig = getConfigValues(spreadsheetId);
+    var sessionId = globalConfig.sessionId || null;
+    var visitorId = globalConfig.VisitorId || globalConfig.visitorId || null;
+
+    karate.log('Using sessionId from config:', sessionId);
+    karate.log('Using visitorId from config:', visitorId);
 
     for (var i = 0; i < tenants.length; i++) {
       var tenant = tenants[i];
@@ -137,6 +166,9 @@
         var row = testData[j];
         row.tenantId = tenant.tenantId;
         row.tenantName = tenant.tenantName;
+        // Add sessionId and visitorId from config sheet
+        row.sessionId = sessionId;
+        row.visitorId = visitorId;
         allTestData.push(row);
       }
     }
@@ -151,7 +183,8 @@
     csvToObjects: csvToObjects,
     getTenantConfig: getTenantConfig,
     getTestDataForTenant: getTestDataForTenant,
-    getAllEnabledTestData: getAllEnabledTestData
+    getAllEnabledTestData: getAllEnabledTestData,
+    getConfigValues: getConfigValues
   };
 
 })()
