@@ -18,6 +18,7 @@ jobs:
       FIREBASE_EMAIL: ${{ secrets.FIREBASE_EMAIL }}
       FIREBASE_PASSWORD: ${{ secrets.FIREBASE_PASSWORD }}
       CMS_BASE_URL: ${{ secrets.CMS_BASE_URL }}
+      GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
 
     steps:
       - name: Checkout

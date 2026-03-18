@@ -11,8 +11,13 @@ import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -52,19 +57,40 @@ public class GoogleSheetsResultWriter {
     }
 
     private GoogleCredentials getCredentials() throws IOException {
-        // Try environment variable first
+        // Priority 1: JSON content directly in environment variable (for CI/CD like GitHub Actions)
+        String credentialsJson = System.getenv("GOOGLE_CREDENTIALS_JSON");
+        if (credentialsJson != null && !credentialsJson.isEmpty()) {
+            System.out.println("Loading Google credentials from GOOGLE_CREDENTIALS_JSON environment variable");
+            try (InputStream stream = new ByteArrayInputStream(credentialsJson.getBytes(StandardCharsets.UTF_8))) {
+                return ServiceAccountCredentials.fromStream(stream).createScoped(SCOPES);
+            }
+        }
+
+        // Priority 2: Path to credentials file in environment variable
         String credentialsPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
         
-        // Fall back to system property
+        // Priority 3: System property
         if (credentialsPath == null || credentialsPath.isEmpty()) {
             credentialsPath = System.getProperty("google.credentials.path");
         }
         
-        // Fall back to default location in project
+        // Priority 4: Default location in project root
         if (credentialsPath == null || credentialsPath.isEmpty()) {
             credentialsPath = "credentials.json";
         }
 
+        // Check if file exists
+        if (!Files.exists(Paths.get(credentialsPath))) {
+            throw new IOException(
+                "Google credentials not found. Please either:\n" +
+                "  1. Set GOOGLE_CREDENTIALS_JSON env var with the JSON content, OR\n" +
+                "  2. Set GOOGLE_APPLICATION_CREDENTIALS env var to the credentials file path, OR\n" +
+                "  3. Place credentials.json in project root\n" +
+                "Looked for file at: " + Paths.get(credentialsPath).toAbsolutePath()
+            );
+        }
+
+        System.out.println("Loading Google credentials from file: " + credentialsPath);
         try (FileInputStream serviceAccountStream = new FileInputStream(credentialsPath)) {
             return ServiceAccountCredentials.fromStream(serviceAccountStream)
                     .createScoped(SCOPES);
