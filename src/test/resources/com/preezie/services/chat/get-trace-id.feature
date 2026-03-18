@@ -9,6 +9,7 @@ Feature: Chat service - send message and return traceId
     * match content != null
     * match content != ''
 
+    * def tenantIdLocal = __arg.tenantId || karate.get('tenantId')
     * def sessionIdLocal = __arg.sessionId || requestTemplate.sessionId
     * def visitorIdLocal = __arg.visitorId || requestTemplate.visitorId
     * def lastContentLocal = __arg.lastContent || requestTemplate.lastContent
@@ -23,7 +24,7 @@ Feature: Chat service - send message and return traceId
 
     Given url baseUrl
     And path '/api/chat'
-    And header Tenantid = tenantId
+    And header Tenantid = tenantIdLocal
     And request req
     When method post
     Then status 200

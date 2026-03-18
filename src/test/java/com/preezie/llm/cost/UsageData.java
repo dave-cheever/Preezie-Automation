@@ -48,6 +48,11 @@ public class UsageData {
     public BigDecimal getInputCost() { return inputCost; }
     public BigDecimal getOutputCost() { return outputCost; }
     public BigDecimal getTotalCost() { return totalCost; }
+    
+    // Double getters for easier use
+    public double getInputCostDouble() { return inputCost.doubleValue(); }
+    public double getOutputCostDouble() { return outputCost.doubleValue(); }
+    public double getTotalCostDouble() { return totalCost.doubleValue(); }
 
     public String toCsvRow() {
         return String.format("%s,%s,%s,%d,%d,%d,%d,%d,%.6f,%.6f,%.6f",

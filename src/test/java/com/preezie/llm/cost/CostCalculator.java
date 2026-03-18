@@ -80,6 +80,14 @@ public class CostCalculator {
         public BigDecimal getTotalInputCost() { return totalInputCost; }
         public BigDecimal getTotalOutputCost() { return totalOutputCost; }
         public BigDecimal getTotalCost() { return totalCost; }
+        
+        // Double getters for easier use
+        public double getTotalInputCostDouble() { return totalInputCost.doubleValue(); }
+        public double getTotalOutputCostDouble() { return totalOutputCost.doubleValue(); }
+        public double getTotalCostDouble() { return totalCost.doubleValue(); }
+        public double getAverageCostPerRequestDouble() { return getAverageCostPerRequest().doubleValue(); }
+        public double getAvgPromptTokens() { return getAveragePromptTokens(); }
+        public double getAvgCompletionTokens() { return getAverageCompletionTokens(); }
 
         @Override
         public String toString() {
