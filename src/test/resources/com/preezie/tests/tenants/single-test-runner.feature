@@ -34,6 +34,19 @@ Scenario:
   * if (failed) karate.set('result', { failed: true, failedAt: failedAt, errorMessage: errorMessage, content: content })
   * if (failed) karate.abort()
 
+  # Check if CMS token is available
+  * eval
+    """
+    if (!cmsIdToken) {
+      failed = true;
+      failedAt = 'cmsAuth';
+      errorMessage = 'CMS authentication token (cmsIdToken) is not configured. Please set FIREBASE_API_KEY, FIREBASE_EMAIL, and FIREBASE_PASSWORD environment variables.';
+      karate.log('[FAILED] cmsAuth - ' + errorMessage);
+    }
+    """
+  * if (failed) karate.set('result', { failed: true, failedAt: failedAt, errorMessage: errorMessage, content: content })
+  * if (failed) karate.abort()
+
   # 2) CMS trace lookup
   Given url cmsBase
   And path '/cms/agents/trace', chat.traceId
