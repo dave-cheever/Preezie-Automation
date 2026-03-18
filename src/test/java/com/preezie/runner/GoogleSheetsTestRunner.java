@@ -117,17 +117,24 @@ public class GoogleSheetsTestRunner {
     private void writeResultsToGoogleSheets(Results results, CostCalculator.CostSummary costSummary, 
                                            String spreadsheetId, String usageCsvPath) {
         // Check if Google Sheets writing is enabled
+        // Support both: GOOGLE_CREDENTIALS_JSON (JSON content) or GOOGLE_APPLICATION_CREDENTIALS (file path)
+        String credentialsJson = System.getenv("GOOGLE_CREDENTIALS_JSON");
         String credentialsPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
         if (credentialsPath == null || credentialsPath.isEmpty()) {
             credentialsPath = System.getProperty("google.credentials.path");
         }
         
-        if (credentialsPath == null || credentialsPath.isEmpty()) {
+        boolean hasCredentials = (credentialsJson != null && !credentialsJson.isEmpty()) 
+                              || (credentialsPath != null && !credentialsPath.isEmpty());
+        
+        if (!hasCredentials) {
             System.out.println("\n⚠️  Google Sheets results export skipped (no credentials configured)");
-            System.out.println("   To enable, set GOOGLE_APPLICATION_CREDENTIALS environment variable");
-            System.out.println("   to your service account JSON file path.");
+            System.out.println("   To enable, set GOOGLE_CREDENTIALS_JSON env var with JSON content,");
+            System.out.println("   or GOOGLE_APPLICATION_CREDENTIALS env var with file path.");
             return;
         }
+        
+        System.out.println("\n✅ Google credentials found, writing results to Google Sheets...");
         
         try {
             GoogleSheetsResultWriter writer = new GoogleSheetsResultWriter(spreadsheetId);
