@@ -7,7 +7,7 @@ Scenario: print totals and averages
     var Files = Java.type('java.nio.file.Files');
     var Paths = Java.type('java.nio.file.Paths');
     var CostReportGenerator = Java.type('com.preezie.llm.cost.CostReportGenerator');
-    var path = java.lang.System.getProperty('user.dir') + '/target/usage.csv';
+    var path = java.lang.System.getProperty('user.dir') + File.separator + 'target' + File.separator + 'usage.csv';
     var f = new File(path);
     karate.log('Checking usage file at', path, 'exists=', f.exists());
     if (!f.exists()) {

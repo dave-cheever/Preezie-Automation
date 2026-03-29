@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 public class TenantTestRunner {
 
-    private static final String USAGE_CSV_PATH = System.getProperty("user.dir") + "/target/usage.csv";
+    private static final String USAGE_CSV_PATH = System.getProperty("user.dir") + File.separator + "target" + File.separator + "usage.csv";
 
     @Test
     void runAllEnabledTenants() throws Exception {

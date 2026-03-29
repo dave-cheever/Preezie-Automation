@@ -49,7 +49,7 @@ public class GoogleSheetsTestRunner {
     @Test
     void runGoogleSheetsTests() {
         // Delete existing usage.csv for a clean report
-        String usageCsvPath = System.getProperty("user.dir") + "/target/usage.csv";
+        String usageCsvPath = System.getProperty("user.dir") + File.separator + "target" + File.separator + "usage.csv";
         try {
             Files.deleteIfExists(Paths.get(usageCsvPath));
             System.out.println("Cleared previous usage.csv for clean report");
@@ -324,6 +324,23 @@ public class GoogleSheetsTestRunner {
                     categoriesCost.setAvgPromptTokens(categoriesData.getAvgPromptTokens());
                     categoriesCost.setAvgCompletionTokens(categoriesData.getAvgCompletionTokens());
                     sheetsCostSummary.setCategoriesCost(categoriesCost);
+                }
+                
+                // Add findProductFromPrompt breakdown
+                CostCalculator.ValidationTypeSummary findProductData = costSummary.getGetFindProductSummary();
+                if (findProductData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary findProductCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    findProductCost.setCount(findProductData.getCount());
+                    findProductCost.setPromptTokens(findProductData.getPromptTokens());
+                    findProductCost.setCompletionTokens(findProductData.getCompletionTokens());
+                    findProductCost.setTotalTokens(findProductData.getTotalTokens());
+                    findProductCost.setInputCost(findProductData.getInputCost().doubleValue());
+                    findProductCost.setOutputCost(findProductData.getOutputCost().doubleValue());
+                    findProductCost.setTotalCost(findProductData.getTotalCost().doubleValue());
+                    findProductCost.setAvgCostPerRequest(findProductData.getAvgCostPerRequest().doubleValue());
+                    findProductCost.setAvgPromptTokens(findProductData.getAvgPromptTokens());
+                    findProductCost.setAvgCompletionTokens(findProductData.getAvgCompletionTokens());
+                    sheetsCostSummary.setFindProductCost(findProductCost);
                 }
                 
                 // Add detailed usage data

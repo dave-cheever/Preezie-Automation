@@ -77,7 +77,9 @@ Scenario:
       try {
         var UsageData = Java.type('com.preezie.llm.cost.UsageData');
         var UsageCsvWriter = Java.type('com.preezie.llm.cost.UsageCsvWriter');
-        var csvFilePath = java.lang.System.getProperty('user.dir') + '/target/usage.csv';
+        var File = Java.type('java.io.File');
+        var projectDir = java.lang.System.getProperty('user.dir');
+        var csvFilePath = projectDir + File.separator + 'target' + File.separator + 'usage.csv';
 
         var tenantId = (__arg.tenantId || '').toString().replace(/'/g, '').replace(/"/g, '').trim();
         var content = (__arg.content || '').toString().replace(/'/g, '').replace(/"/g, '').trim();

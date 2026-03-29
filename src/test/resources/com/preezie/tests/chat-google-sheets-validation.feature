@@ -339,6 +339,83 @@ Scenario: Run all enabled tests from Google Sheets
           karate.log('Skipping getCategories validation (not present in trace data)');
         }
 
+        // 7) Validate findProductFromPrompt with AI Judge
+        karate.log('Step 7: Validating findProductFromPrompt with AI Judge...');
+        var findProductItems = karate.filter(traceData, function(x){ return x.agentName == 'findProductFromPrompt' });
+        karate.log('findProductFromPrompt items found:', findProductItems.length);
+
+        if (findProductItems.length > 0) {
+          var findProductLlmResponseText = utils.getFirstLLMResponseText(findProductItems);
+          var findProductPromptArgumentsObj = utils.getFirstFindProductPromptArguments(findProductItems);
+          var findProductLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(findProductItems);
+
+          // Use the actual UserMessage from findProductFromPrompt's prompt arguments
+          var findProductUserMessage = utils.getFirstUserPromptOnly(findProductItems);
+          karate.log('findProductFromPrompt UserMessage from trace:', findProductUserMessage ? findProductUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('findProductFromPrompt LLM Response:', findProductLlmResponseText ? findProductLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var findProductEvalArgs = {
+            PromptArguments: findProductPromptArgumentsObj,
+            LLMRequestFormattedPrompt: findProductLlmRequestFormatedText,
+            UserMessage: findProductUserMessage || content,  // Fallback to content if userPrompt not found
+            ResponseLLM: findProductLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var findProductEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-findproduct-evaluator.feature', findProductEvalArgs);
+          karate.log('FindProduct Evaluator result - pass:', findProductEvalResult && findProductEvalResult.findProductValidationOut ? findProductEvalResult.findProductValidationOut.pass : 'undefined');
+
+          var findProductValidation = findProductEvalResult ? findProductEvalResult.findProductValidationOut : null;
+          var findProductPassed = findProductValidation && findProductValidation.pass === true;
+
+          if (!findProductPassed) {
+            results.failed++;
+
+            var findProductErrorDetails = '';
+            if (findProductValidation) {
+              if (findProductValidation.scores) {
+                findProductErrorDetails += 'Scores: relevance=' + (findProductValidation.scores.relevance || 'N/A') +
+                  ', faithfulness=' + (findProductValidation.scores.faithfulness || 'N/A') +
+                  ', instructionCompliance=' + (findProductValidation.scores.instructionCompliance || 'N/A') +
+                  ', semanticCloseness=' + (findProductValidation.scores.semanticCloseness || 'N/A') + '. ';
+              }
+              // Include extracted query info from AI
+              var parsedFindProductContent = findProductEvalResult.findProductEvaluatorResultOut ? findProductEvalResult.findProductEvaluatorResultOut.parsedContent : null;
+              if (parsedFindProductContent) {
+                if (parsedFindProductContent.extractedQuery) {
+                  findProductErrorDetails += 'Extracted Query: ' + parsedFindProductContent.extractedQuery + '. ';
+                }
+                if (parsedFindProductContent.expectedQuery) {
+                  findProductErrorDetails += 'Expected Query: ' + parsedFindProductContent.expectedQuery + '. ';
+                }
+              }
+              if (findProductValidation.issues && findProductValidation.issues.length > 0) {
+                findProductErrorDetails += 'Issues: ' + findProductValidation.issues.join('; ') + '. ';
+              }
+              if (findProductValidation.summary) {
+                findProductErrorDetails += 'Summary: ' + findProductValidation.summary;
+              }
+            } else {
+              findProductErrorDetails = 'FindProduct LLM evaluation failed or returned no validation';
+            }
+
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'findProductFromPrompt',
+              error: findProductErrorDetails,
+              responseLLM: findProductLlmResponseText ? (findProductLlmResponseText.length > 300 ? findProductLlmResponseText.substring(0, 300) + '...' : findProductLlmResponseText) : ''
+            });
+            karate.log('[FAILED] findProductFromPrompt validation:', findProductErrorDetails);
+            return;
+          }
+        } else {
+          karate.log('Skipping findProductFromPrompt validation (not present in trace data)');
+        }
+
         // All validations passed
         results.passed++;
         karate.log('[PASSED] All validations passed for:', content);

@@ -1,5 +1,6 @@
 // Filter CSV data to only return enabled rows
-// Usage: * def filteredData = filterEnabled(karate.read('classpath:testdata/Blue_Bungalow.csv'))
+// Usage: * def filteredData = filterEnabled(csvData)
+// Note: Test data is now primarily sourced from Google Sheets (see chat-google-sheets-validation.feature)
 
 function filterEnabled(csvData) {
   if (!csvData || !Array.isArray(csvData)) {
