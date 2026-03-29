@@ -48,6 +48,77 @@
     return null;
   },
 
+  // ========== getIntentSummary Prompt Arguments ==========
+  // Fields: userPrompt, chatHistory, productRecommendationHistory, lastDiscussedProduct
+  getIntentSummaryPromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        userPrompt: args.userPrompt || '',
+        chatHistory: args.chatHistory || '',
+        productRecommendationHistory: args.productRecommendationHistory || '',
+        lastDiscussedProduct: args.lastDiscussedProduct || ''
+      };
+    },
+
+    getFirstIntentSummaryPromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getIntentSummaryPromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
+      },
+
+  // ========== getIntent Prompt Arguments ==========
+  // Fields: userPrompt, brandOverview, choices
+  getIntentPromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        userPrompt: args.userPrompt || '',
+        brandOverview: args.brandOverview || '',
+        choices: args.choices || ''
+      };
+    },
+
+    getFirstIntentPromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getIntentPromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
+      },
+
+  // ========== getCategories Prompt Arguments ==========
+  // Fields: userPrompt, brandOverview, lastDiscussedCategories
+  getCategoriesPromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        userPrompt: args.userPrompt || '',
+        brandOverview: args.brandOverview || '',
+        lastDiscussedCategories: args.lastDiscussedCategories || ''
+      };
+    },
+
+    getFirstCategoriesPromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getCategoriesPromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
+      },
+
+  // Legacy function (kept for backward compatibility) - returns concatenated string
   getLLMPromptArguments: function(item) {
       if (!item || !item.promptContent) return null;
       var userPrompt = item.promptContent.arguments.userPrompt;

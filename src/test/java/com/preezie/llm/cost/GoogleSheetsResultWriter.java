@@ -194,6 +194,28 @@ public class GoogleSheetsResultWriter {
             }
             data.add(Arrays.asList("")); // Empty row
             
+            // getCategories Section
+            data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
+            data.add(Arrays.asList("AI COST SUMMARY - getCategories"));
+            data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
+            data.add(Arrays.asList("Metric", "Value"));
+            if (cost.getCategoriesCost() != null) {
+                ValidationTypeCostSummary categoriesCost = cost.getCategoriesCost();
+                data.add(Arrays.asList("Evaluations", categoriesCost.getCount()));
+                data.add(Arrays.asList("Prompt Tokens", String.format("%,d", categoriesCost.getPromptTokens())));
+                data.add(Arrays.asList("Completion Tokens", String.format("%,d", categoriesCost.getCompletionTokens())));
+                data.add(Arrays.asList("Total Tokens", String.format("%,d", categoriesCost.getTotalTokens())));
+                data.add(Arrays.asList("Input Cost", String.format("$%.6f", categoriesCost.getInputCost())));
+                data.add(Arrays.asList("Output Cost", String.format("$%.6f", categoriesCost.getOutputCost())));
+                data.add(Arrays.asList("Total Cost", String.format("$%.6f", categoriesCost.getTotalCost())));
+                data.add(Arrays.asList("Avg Cost/Evaluation", String.format("$%.6f", categoriesCost.getAvgCostPerRequest())));
+                data.add(Arrays.asList("Avg Prompt Tokens", String.format("%.2f", categoriesCost.getAvgPromptTokens())));
+                data.add(Arrays.asList("Avg Completion Tokens", String.format("%.2f", categoriesCost.getAvgCompletionTokens())));
+            } else {
+                data.add(Arrays.asList("No data", "N/A"));
+            }
+            data.add(Arrays.asList("")); // Empty row
+            
             // Combined Total Section
             data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
             data.add(Arrays.asList("COMBINED TOTAL AI COST SUMMARY"));
@@ -202,8 +224,10 @@ public class GoogleSheetsResultWriter {
             data.add(Arrays.asList("Total AI Evaluations", cost.getTotalRequests()));
             int intentSummaryCount = cost.getIntentSummaryCost() != null ? cost.getIntentSummaryCost().getCount() : 0;
             int intentCount = cost.getIntentCost() != null ? cost.getIntentCost().getCount() : 0;
+            int categoriesCount = cost.getCategoriesCost() != null ? cost.getCategoriesCost().getCount() : 0;
             data.add(Arrays.asList("  - getIntentSummary", intentSummaryCount));
             data.add(Arrays.asList("  - getIntent", intentCount));
+            data.add(Arrays.asList("  - getCategories", categoriesCount));
             data.add(Arrays.asList(""));
             data.add(Arrays.asList("Total Prompt Tokens", String.format("%,d", cost.getTotalPromptTokens())));
             data.add(Arrays.asList("Total Completion Tokens", String.format("%,d", cost.getTotalCompletionTokens())));
@@ -389,6 +413,7 @@ public class GoogleSheetsResultWriter {
         private List<UsageDetail> usageDetails = new ArrayList<>();
         private ValidationTypeCostSummary intentSummaryCost;
         private ValidationTypeCostSummary intentCost;
+        private ValidationTypeCostSummary categoriesCost;
 
         // Getters and setters
         public int getTotalRequests() { return totalRequests; }
@@ -430,6 +455,9 @@ public class GoogleSheetsResultWriter {
         
         public ValidationTypeCostSummary getIntentCost() { return intentCost; }
         public void setIntentCost(ValidationTypeCostSummary intentCost) { this.intentCost = intentCost; }
+        
+        public ValidationTypeCostSummary getCategoriesCost() { return categoriesCost; }
+        public void setCategoriesCost(ValidationTypeCostSummary categoriesCost) { this.categoriesCost = categoriesCost; }
     }
 
     /**

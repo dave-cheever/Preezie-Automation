@@ -131,13 +131,13 @@ Scenario: Run all enabled tests from Google Sheets
         karate.log('getIntentSummary items found:', intentSummaryItems.length);
 
         var llmResponseText = utils.getFirstLLMResponseText(intentSummaryItems);
-        var promptArgumentsText = utils.getFirstLLMPromptArgumentsText(intentSummaryItems);
+        var promptArgumentsObj = utils.getFirstIntentSummaryPromptArguments(intentSummaryItems);
         var llmRequestFormatedText = utils.getFirstLLMRequestFormatedText(intentSummaryItems);
 
         karate.log('LLM Response Text:', llmResponseText ? llmResponseText.substring(0, 100) + '...' : 'null');
 
         var evalArgs = {
-          PromptArguments: promptArgumentsText,
+          PromptArguments: promptArgumentsObj,
           LLMRequestFormattedPrompt: llmRequestFormatedText,
           UserMessage: content,
           ResponseLLM: llmResponseText,
@@ -192,7 +192,7 @@ Scenario: Run all enabled tests from Google Sheets
 
         if (getIntentItems.length > 0) {
           var intentLlmResponseText = utils.getFirstLLMResponseText(getIntentItems);
-          var intentPromptArgumentsText = utils.getFirstLLMPromptArgumentsText(getIntentItems);
+          var intentPromptArgumentsObj = utils.getFirstIntentPromptArguments(getIntentItems);
           var intentLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(getIntentItems);
 
           // Use the actual UserMessage from getIntent's prompt arguments, not the test content
@@ -201,7 +201,7 @@ Scenario: Run all enabled tests from Google Sheets
           karate.log('getIntent LLM Response:', intentLlmResponseText ? intentLlmResponseText.substring(0, 100) + '...' : 'null');
 
           var intentEvalArgs = {
-            PromptArguments: intentPromptArgumentsText,
+            PromptArguments: intentPromptArgumentsObj,
             LLMRequestFormattedPrompt: intentLlmRequestFormatedText,
             UserMessage: intentUserMessage || content,  // Fallback to content if userPrompt not found
             ResponseLLM: intentLlmResponseText,
@@ -260,6 +260,83 @@ Scenario: Run all enabled tests from Google Sheets
           }
         } else {
           karate.log('Skipping getIntent validation (not present in trace data)');
+        }
+
+        // 6) Validate getCategories with AI Judge
+        karate.log('Step 6: Validating getCategories with AI Judge...');
+        var getCategoriesItems = karate.filter(traceData, function(x){ return x.agentName == 'getCategories' });
+        karate.log('getCategories items found:', getCategoriesItems.length);
+
+        if (getCategoriesItems.length > 0) {
+          var categoriesLlmResponseText = utils.getFirstLLMResponseText(getCategoriesItems);
+          var categoriesPromptArgumentsObj = utils.getFirstCategoriesPromptArguments(getCategoriesItems);
+          var categoriesLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(getCategoriesItems);
+
+          // Use the actual UserMessage from getCategories's prompt arguments
+          var categoriesUserMessage = utils.getFirstUserPromptOnly(getCategoriesItems);
+          karate.log('getCategories UserMessage from trace:', categoriesUserMessage ? categoriesUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('getCategories LLM Response:', categoriesLlmResponseText ? categoriesLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var categoriesEvalArgs = {
+            PromptArguments: categoriesPromptArgumentsObj,
+            LLMRequestFormattedPrompt: categoriesLlmRequestFormatedText,
+            UserMessage: categoriesUserMessage || content,  // Fallback to content if userPrompt not found
+            ResponseLLM: categoriesLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var categoriesEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-categories-evaluator.feature', categoriesEvalArgs);
+          karate.log('Categories Evaluator result - pass:', categoriesEvalResult && categoriesEvalResult.categoriesValidationOut ? categoriesEvalResult.categoriesValidationOut.pass : 'undefined');
+
+          var categoriesValidation = categoriesEvalResult ? categoriesEvalResult.categoriesValidationOut : null;
+          var categoriesPassed = categoriesValidation && categoriesValidation.pass === true;
+
+          if (!categoriesPassed) {
+            results.failed++;
+
+            var categoriesErrorDetails = '';
+            if (categoriesValidation) {
+              if (categoriesValidation.scores) {
+                categoriesErrorDetails += 'Scores: relevance=' + (categoriesValidation.scores.relevance || 'N/A') +
+                  ', faithfulness=' + (categoriesValidation.scores.faithfulness || 'N/A') +
+                  ', instructionCompliance=' + (categoriesValidation.scores.instructionCompliance || 'N/A') +
+                  ', semanticCloseness=' + (categoriesValidation.scores.semanticCloseness || 'N/A') + '. ';
+              }
+              // Include classified categories info from AI
+              var parsedCategoriesContent = categoriesEvalResult.categoriesEvaluatorResultOut ? categoriesEvalResult.categoriesEvaluatorResultOut.parsedContent : null;
+              if (parsedCategoriesContent) {
+                if (parsedCategoriesContent.classifiedCategories) {
+                  categoriesErrorDetails += 'Classified Categories: ' + parsedCategoriesContent.classifiedCategories + '. ';
+                }
+                if (parsedCategoriesContent.expectedCategories) {
+                  categoriesErrorDetails += 'Expected Categories: ' + parsedCategoriesContent.expectedCategories + '. ';
+                }
+              }
+              if (categoriesValidation.issues && categoriesValidation.issues.length > 0) {
+                categoriesErrorDetails += 'Issues: ' + categoriesValidation.issues.join('; ') + '. ';
+              }
+              if (categoriesValidation.summary) {
+                categoriesErrorDetails += 'Summary: ' + categoriesValidation.summary;
+              }
+            } else {
+              categoriesErrorDetails = 'Categories LLM evaluation failed or returned no validation';
+            }
+
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'getCategories',
+              error: categoriesErrorDetails,
+              responseLLM: categoriesLlmResponseText ? (categoriesLlmResponseText.length > 300 ? categoriesLlmResponseText.substring(0, 300) + '...' : categoriesLlmResponseText) : ''
+            });
+            karate.log('[FAILED] getCategories validation:', categoriesErrorDetails);
+            return;
+          }
+        } else {
+          karate.log('Skipping getCategories validation (not present in trace data)');
         }
 
         // All validations passed

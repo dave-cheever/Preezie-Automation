@@ -9,7 +9,7 @@ public class CostCalculator {
     public CostSummary calculateSummary(List<UsageData> usageDataList) {
         if (usageDataList == null || usageDataList.isEmpty()) {
             return new CostSummary(0, 0, 0, 0, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 
-                    new ValidationTypeSummary(), new ValidationTypeSummary());
+                    new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary());
         }
 
         int totalRequests = usageDataList.size();
@@ -22,6 +22,7 @@ public class CostCalculator {
         // Separate tracking for each validation type
         ValidationTypeSummary intentSummarySummary = new ValidationTypeSummary();
         ValidationTypeSummary intentSummary = new ValidationTypeSummary();
+        ValidationTypeSummary categoriesSummary = new ValidationTypeSummary();
 
         for (UsageData data : usageDataList) {
             totalPromptTokens += data.getPromptTokens();
@@ -37,6 +38,8 @@ public class CostCalculator {
                     intentSummarySummary.addUsage(data);
                 } else if (content.contains("[getIntent]")) {
                     intentSummary.addUsage(data);
+                } else if (content.contains("[getCategories]")) {
+                    categoriesSummary.addUsage(data);
                 }
             }
         }
@@ -50,7 +53,8 @@ public class CostCalculator {
                 totalOutputCost,
                 totalInputCost.add(totalOutputCost),
                 intentSummarySummary,
-                intentSummary
+                intentSummary,
+                categoriesSummary
         );
     }
 
@@ -99,11 +103,12 @@ public class CostCalculator {
         private final BigDecimal totalCost;
         private final ValidationTypeSummary getIntentSummarySummary;
         private final ValidationTypeSummary getIntentSummary;
+        private final ValidationTypeSummary getCategoriesSummary;
 
         public CostSummary(int totalRequests, int totalPromptTokens, int totalCompletionTokens,
                            int totalTokens, BigDecimal totalInputCost, BigDecimal totalOutputCost,
                            BigDecimal totalCost, ValidationTypeSummary getIntentSummarySummary,
-                           ValidationTypeSummary getIntentSummary) {
+                           ValidationTypeSummary getIntentSummary, ValidationTypeSummary getCategoriesSummary) {
             this.totalRequests = totalRequests;
             this.totalPromptTokens = totalPromptTokens;
             this.totalCompletionTokens = totalCompletionTokens;
@@ -113,6 +118,7 @@ public class CostCalculator {
             this.totalCost = totalCost.setScale(6, RoundingMode.HALF_UP);
             this.getIntentSummarySummary = getIntentSummarySummary;
             this.getIntentSummary = getIntentSummary;
+            this.getCategoriesSummary = getCategoriesSummary;
         }
 
         public BigDecimal getAverageCostPerRequest() {
@@ -139,6 +145,7 @@ public class CostCalculator {
         public BigDecimal getTotalCost() { return totalCost; }
         public ValidationTypeSummary getGetIntentSummarySummary() { return getIntentSummarySummary; }
         public ValidationTypeSummary getGetIntentSummary() { return getIntentSummary; }
+        public ValidationTypeSummary getGetCategoriesSummary() { return getCategoriesSummary; }
         
         // Double getters for easier use
         public double getTotalInputCostDouble() { return totalInputCost.doubleValue(); }
@@ -211,6 +218,36 @@ public class CostCalculator {
                     getIntentSummary.getAvgPromptTokens(),
                     getIntentSummary.getAvgCompletionTokens()));
 
+            // getCategories Section
+            sb.append("""
+                    
+                    ═══════════════════════════════════════════════════════════════
+                                    AI COST SUMMARY - getCategories
+                    ═══════════════════════════════════════════════════════════════
+                    """);
+            sb.append(String.format("""
+                    Evaluations:              %d
+                    Prompt Tokens:            %,d
+                    Completion Tokens:        %,d
+                    Total Tokens:             %,d
+                    Input Cost:               $%.6f
+                    Output Cost:              $%.6f
+                    Total Cost:               $%.6f
+                    Avg Cost/Evaluation:      $%.6f
+                    Avg Prompt Tokens:        %.2f
+                    Avg Completion Tokens:    %.2f
+                    """,
+                    getCategoriesSummary.getCount(),
+                    getCategoriesSummary.getPromptTokens(),
+                    getCategoriesSummary.getCompletionTokens(),
+                    getCategoriesSummary.getTotalTokens(),
+                    getCategoriesSummary.getInputCost(),
+                    getCategoriesSummary.getOutputCost(),
+                    getCategoriesSummary.getTotalCost(),
+                    getCategoriesSummary.getAvgCostPerRequest(),
+                    getCategoriesSummary.getAvgPromptTokens(),
+                    getCategoriesSummary.getAvgCompletionTokens()));
+
             // Combined Total Section
             sb.append("""
                     
@@ -222,6 +259,7 @@ public class CostCalculator {
                     Total AI Evaluations:     %d
                       - getIntentSummary:     %d
                       - getIntent:            %d
+                      - getCategories:        %d
                     ───────────────────────────────────────────────────────────────
                     Total Prompt Tokens:      %,d
                     Total Completion Tokens:  %,d
@@ -236,7 +274,7 @@ public class CostCalculator {
                     Avg Completion Tokens:    %.2f
                     ═══════════════════════════════════════════════════════════════
                     """,
-                    totalRequests, getIntentSummarySummary.getCount(), getIntentSummary.getCount(),
+                    totalRequests, getIntentSummarySummary.getCount(), getIntentSummary.getCount(), getCategoriesSummary.getCount(),
                     totalPromptTokens, totalCompletionTokens, totalTokens,
                     totalInputCost, totalOutputCost, totalCost,
                     getAverageCostPerRequest(), getAveragePromptTokens(), getAverageCompletionTokens()));

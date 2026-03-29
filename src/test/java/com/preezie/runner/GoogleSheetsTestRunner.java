@@ -309,6 +309,23 @@ public class GoogleSheetsTestRunner {
                     sheetsCostSummary.setIntentCost(intentCost);
                 }
                 
+                // Add getCategories breakdown
+                CostCalculator.ValidationTypeSummary categoriesData = costSummary.getGetCategoriesSummary();
+                if (categoriesData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary categoriesCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    categoriesCost.setCount(categoriesData.getCount());
+                    categoriesCost.setPromptTokens(categoriesData.getPromptTokens());
+                    categoriesCost.setCompletionTokens(categoriesData.getCompletionTokens());
+                    categoriesCost.setTotalTokens(categoriesData.getTotalTokens());
+                    categoriesCost.setInputCost(categoriesData.getInputCost().doubleValue());
+                    categoriesCost.setOutputCost(categoriesData.getOutputCost().doubleValue());
+                    categoriesCost.setTotalCost(categoriesData.getTotalCost().doubleValue());
+                    categoriesCost.setAvgCostPerRequest(categoriesData.getAvgCostPerRequest().doubleValue());
+                    categoriesCost.setAvgPromptTokens(categoriesData.getAvgPromptTokens());
+                    categoriesCost.setAvgCompletionTokens(categoriesData.getAvgCompletionTokens());
+                    sheetsCostSummary.setCategoriesCost(categoriesCost);
+                }
+                
                 // Add detailed usage data
                 List<UsageData> usageDataList = readUsageData(usageCsvPath);
                 for (UsageData usage : usageDataList) {
