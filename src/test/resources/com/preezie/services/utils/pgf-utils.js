@@ -118,6 +118,29 @@
         return null;
       },
 
+  // ========== findProductFromPrompt Prompt Arguments ==========
+  // Fields: userPrompt, genders, dynamicVariantFields
+  getFindProductPromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        userPrompt: args.userPrompt || '',
+        genders: args.genders || '',
+        dynamicVariantFields: args.dynamicVariantFields || ''
+      };
+    },
+
+    getFirstFindProductPromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getFindProductPromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
+      },
+
   // Legacy function (kept for backward compatibility) - returns concatenated string
   getLLMPromptArguments: function(item) {
       if (!item || !item.promptContent) return null;

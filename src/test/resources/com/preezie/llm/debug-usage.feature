@@ -13,7 +13,8 @@ Scenario: Test usage CSV writing
       var UsageCsvWriter = Java.type('com.preezie.llm.cost.UsageCsvWriter');
       karate.log('UsageCsvWriter loaded successfully');
 
-      var csvFilePath = java.lang.System.getProperty('user.dir') + '/target/usage.csv';
+      var File = Java.type('java.io.File');
+      var csvFilePath = java.lang.System.getProperty('user.dir') + File.separator + 'target' + File.separator + 'usage.csv';
       karate.log('CSV Path:', csvFilePath);
 
       var builder = new UsageData.Builder();

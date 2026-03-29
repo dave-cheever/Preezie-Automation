@@ -1,0 +1,57 @@
+INPUTS:
+
+PromptArguments (contains userPrompt, genders, dynamicVariantFields):
+{{PromptArguments}}
+
+LLMRequestFormattedPrompt:
+{{LLMRequestFormattedPrompt}}
+
+UserMessage:
+{{UserMessage}}
+
+AssistantResponse (Product Search Query Result):
+{{ResponseLLM}}
+
+TASK:
+
+1. Review the LLMRequestFormattedPrompt to understand the expected output format and rules.
+2. Review PromptArguments to understand:
+   - userPrompt: the user's original message/search request
+   - genders: available gender options for filtering
+   - dynamicVariantFields: available product attributes/variants for filtering
+3. Analyze the UserMessage to understand what product(s) the user is looking for.
+4. Determine whether the search query in AssistantResponse:
+   - Correctly extracts search terms from the user's message
+   - Applies appropriate filters based on available genders and dynamicVariantFields
+   - Does not include invalid or hallucinated filter values
+   - Follows the expected output format
+5. Judge correctness of the search query, not exact wording or format.
+
+SCORING RULES (0–5):
+- relevance: the search query correctly addresses what the user is looking for
+- faithfulness: no hallucinated filters, invented attributes, or invalid values
+- instructionCompliance: follows the query format and rules defined in the prompt
+- semanticCloseness: the search query accurately represents user's product search intent
+
+PASS CONDITIONS:
+- relevance >= 4
+- faithfulness >= 4
+- instructionCompliance >= 4
+- semanticCloseness >= 4
+
+RETURN ONLY THIS JSON STRUCTURE:
+
+{
+  "pass": true | false,
+  "scores": {
+    "relevance": number,
+    "faithfulness": number,
+    "instructionCompliance": number,
+    "semanticCloseness": number
+  },
+  "extractedQuery": "summary of search query/filters from AssistantResponse",
+  "expectedQuery": "what search query you believe is appropriate based on UserMessage",
+  "issues": [string],
+  "summary": "short explanation of why the search query is correct or incorrect"
+}
+

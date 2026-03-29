@@ -1,7 +1,7 @@
-Feature: Run categories evaluator against getCategories classification
+Feature: Run findProduct evaluator against findProductFromPrompt
 
 Scenario:
-  * karate.log('=== RUN-CATEGORIES-EVALUATOR.FEATURE STARTED ===')
+  * karate.log('=== RUN-FINDPRODUCT-EVALUATOR.FEATURE STARTED ===')
   * def evaluatorContext =
     """
     {
@@ -13,8 +13,8 @@ Scenario:
     """
   * def evaluatorContextText = karate.pretty(evaluatorContext)
 
-  * def evaluatorSystem = read('classpath:com/preezie/llm/validators/prompts/categories-evaluator-system.prompt.txt')
-  * def evaluatorUser = read('classpath:com/preezie/llm/validators/prompts/categories-evaluator-user.prompt.txt')
+  * def evaluatorSystem = read('classpath:com/preezie/llm/validators/prompts/findproduct-evaluator-system.prompt.txt')
+  * def evaluatorUser = read('classpath:com/preezie/llm/validators/prompts/findproduct-evaluator-user.prompt.txt')
   * def evaluatorUserWithContext = evaluatorUser + '\n\nContext to evaluate (JSON):\n' + evaluatorContextText
 
   * def evaluatorPayload =
@@ -29,30 +29,30 @@ Scenario:
     }
     """
 
-  * karate.log('=== CALLING LLM-CLIENT.FEATURE FOR CATEGORIES EVALUATION ===')
+  * karate.log('=== CALLING LLM-CLIENT.FEATURE FOR FINDPRODUCT EVALUATION ===')
   * def llmResult = call read('classpath:com/preezie/llm/helpers/llm-client.feature')
   * karate.log('=== LLM-CLIENT.FEATURE RETURNED ===')
 
   # Check if LLM call succeeded
   * def llmCallSucceeded = llmResult.llmCallSucceeded == true
-  * karate.log('=== Categories LLM call succeeded:', llmCallSucceeded)
+  * karate.log('=== FindProduct LLM call succeeded:', llmCallSucceeded)
 
   * def evaluatorResult = llmResult.evaluatorResponse
-  * karate.log('=== Categories evaluatorResponse received, has usage:', evaluatorResult && evaluatorResult.usage ? 'yes' : 'no')
+  * karate.log('=== FindProduct evaluatorResponse received, has usage:', evaluatorResult && evaluatorResult.usage ? 'yes' : 'no')
 
   # If LLM call failed, create a dummy validation result
   * eval
     """
     if (!llmCallSucceeded) {
-      karate.log('=== CATEGORIES LLM CALL FAILED - Creating fallback result ===');
+      karate.log('=== FINDPRODUCT LLM CALL FAILED - Creating fallback result ===');
       evaluatorResult = evaluatorResult || {};
       evaluatorResult.parsedContent = {
         pass: false,
         scores: { relevance: 0, faithfulness: 0, instructionCompliance: 0, semanticCloseness: 0 },
-        classifiedCategories: 'Unknown',
-        expectedCategories: 'Unknown',
+        extractedQuery: 'Unknown',
+        expectedQuery: 'Unknown',
         issues: ['LLM API call failed: ' + (evaluatorResult.error ? evaluatorResult.error.message : 'Unknown error')],
-        summary: 'Categories evaluation could not be performed due to API error'
+        summary: 'FindProduct evaluation could not be performed due to API error'
       };
     } else {
       if (typeof evaluatorResult === 'string') {
@@ -68,11 +68,19 @@ Scenario:
     }
     """
 
-  # Record usage - directly write to CSV using Java (for getCategories AI cost tracking)
-  * print '=== BEFORE CATEGORIES USAGE RECORDING - evaluatorResult type:', typeof evaluatorResult
+  # Record usage - directly write to CSV using Java (for findProductFromPrompt AI cost tracking)
+  * print '=== BEFORE FINDPRODUCT USAGE RECORDING - evaluatorResult type:', typeof evaluatorResult
+  * print '=== evaluatorResult:', evaluatorResult
+  * print '=== evaluatorResult.usage:', evaluatorResult ? evaluatorResult.usage : 'no evaluatorResult'
   * eval
     """
-    karate.log('=== INSIDE CATEGORIES USAGE RECORDING EVAL ===');
+    karate.log('=== INSIDE FINDPRODUCT USAGE RECORDING EVAL ===');
+    karate.log('evaluatorResult exists:', !!evaluatorResult);
+    if (evaluatorResult) {
+      karate.log('evaluatorResult.usage exists:', !!evaluatorResult.usage);
+      karate.log('evaluatorResult keys:', Object.keys(evaluatorResult));
+    }
+
     if (evaluatorResult && evaluatorResult.usage) {
       try {
         var UsageData = Java.type('com.preezie.llm.cost.UsageData');
@@ -90,7 +98,8 @@ Scenario:
         var cachedTokens = evaluatorResult.usage.prompt_tokens_details ? (parseInt(evaluatorResult.usage.prompt_tokens_details.cached_tokens) || 0) : 0;
         var audioTokens = evaluatorResult.usage.prompt_tokens_details ? (parseInt(evaluatorResult.usage.prompt_tokens_details.audio_tokens) || 0) : 0;
 
-        karate.log('=== RECORDING CATEGORIES USAGE ===');
+        karate.log('=== RECORDING FINDPRODUCT USAGE ===');
+        karate.log('CSV Path:', csvFilePath);
         karate.log('TenantId:', tenantId);
         karate.log('Content:', content.substring(0, Math.min(50, content.length)));
         karate.log('Prompt Tokens:', promptTokens);
@@ -99,7 +108,7 @@ Scenario:
 
         var builder = new UsageData.Builder();
         builder.tenantId(tenantId);
-        builder.content(content + ' [getCategories]');
+        builder.content(content + ' [findProductFromPrompt]');
         builder.modelName('gpt-4.1');
         builder.promptTokens(promptTokens);
         builder.completionTokens(completionTokens);
@@ -110,12 +119,17 @@ Scenario:
 
         var writer = new UsageCsvWriter(csvFilePath);
         writer.writeUsage(usageDataObj);
-        karate.log('=== CATEGORIES USAGE RECORDED SUCCESSFULLY ===');
+        karate.log('=== FINDPRODUCT USAGE RECORDED SUCCESSFULLY ===');
       } catch (e) {
-        karate.log('ERROR recording categories usage:', e);
+        karate.log('ERROR recording findProduct usage:', e);
+        karate.log('Error message:', e.message);
+        karate.log('Error stack:', e.stack);
       }
     } else {
-      karate.log('WARNING: No usage data found in categories evaluatorResult');
+      karate.log('WARNING: No usage data found in findProduct evaluatorResult');
+      if (evaluatorResult) {
+        karate.log('evaluatorResult content:', JSON.stringify(evaluatorResult).substring(0, 500));
+      }
     }
     """
 
@@ -124,8 +138,8 @@ Scenario:
   * def validation = validator.validateLLMResponse(toValidate)
 
   # Expose variables to caller
-  * def categoriesEvaluatorResultOut = evaluatorResult
-  * def categoriesValidationOut = validation
-  * def categoriesLlmCallSucceededOut = llmCallSucceeded
+  * def findProductEvaluatorResultOut = evaluatorResult
+  * def findProductValidationOut = validation
+  * def findProductLlmCallSucceededOut = llmCallSucceeded
 
 

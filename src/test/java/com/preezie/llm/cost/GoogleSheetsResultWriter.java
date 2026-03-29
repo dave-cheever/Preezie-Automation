@@ -216,6 +216,28 @@ public class GoogleSheetsResultWriter {
             }
             data.add(Arrays.asList("")); // Empty row
             
+            // findProductFromPrompt Section
+            data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
+            data.add(Arrays.asList("AI COST SUMMARY - findProductFromPrompt"));
+            data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
+            data.add(Arrays.asList("Metric", "Value"));
+            if (cost.getFindProductCost() != null) {
+                ValidationTypeCostSummary findProductCost = cost.getFindProductCost();
+                data.add(Arrays.asList("Evaluations", findProductCost.getCount()));
+                data.add(Arrays.asList("Prompt Tokens", String.format("%,d", findProductCost.getPromptTokens())));
+                data.add(Arrays.asList("Completion Tokens", String.format("%,d", findProductCost.getCompletionTokens())));
+                data.add(Arrays.asList("Total Tokens", String.format("%,d", findProductCost.getTotalTokens())));
+                data.add(Arrays.asList("Input Cost", String.format("$%.6f", findProductCost.getInputCost())));
+                data.add(Arrays.asList("Output Cost", String.format("$%.6f", findProductCost.getOutputCost())));
+                data.add(Arrays.asList("Total Cost", String.format("$%.6f", findProductCost.getTotalCost())));
+                data.add(Arrays.asList("Avg Cost/Evaluation", String.format("$%.6f", findProductCost.getAvgCostPerRequest())));
+                data.add(Arrays.asList("Avg Prompt Tokens", String.format("%.2f", findProductCost.getAvgPromptTokens())));
+                data.add(Arrays.asList("Avg Completion Tokens", String.format("%.2f", findProductCost.getAvgCompletionTokens())));
+            } else {
+                data.add(Arrays.asList("No data", "N/A"));
+            }
+            data.add(Arrays.asList("")); // Empty row
+            
             // Combined Total Section
             data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
             data.add(Arrays.asList("COMBINED TOTAL AI COST SUMMARY"));
@@ -225,9 +247,11 @@ public class GoogleSheetsResultWriter {
             int intentSummaryCount = cost.getIntentSummaryCost() != null ? cost.getIntentSummaryCost().getCount() : 0;
             int intentCount = cost.getIntentCost() != null ? cost.getIntentCost().getCount() : 0;
             int categoriesCount = cost.getCategoriesCost() != null ? cost.getCategoriesCost().getCount() : 0;
+            int findProductCount = cost.getFindProductCost() != null ? cost.getFindProductCost().getCount() : 0;
             data.add(Arrays.asList("  - getIntentSummary", intentSummaryCount));
             data.add(Arrays.asList("  - getIntent", intentCount));
             data.add(Arrays.asList("  - getCategories", categoriesCount));
+            data.add(Arrays.asList("  - findProductFromPrompt", findProductCount));
             data.add(Arrays.asList(""));
             data.add(Arrays.asList("Total Prompt Tokens", String.format("%,d", cost.getTotalPromptTokens())));
             data.add(Arrays.asList("Total Completion Tokens", String.format("%,d", cost.getTotalCompletionTokens())));
@@ -414,6 +438,7 @@ public class GoogleSheetsResultWriter {
         private ValidationTypeCostSummary intentSummaryCost;
         private ValidationTypeCostSummary intentCost;
         private ValidationTypeCostSummary categoriesCost;
+        private ValidationTypeCostSummary findProductCost;
 
         // Getters and setters
         public int getTotalRequests() { return totalRequests; }
@@ -458,6 +483,9 @@ public class GoogleSheetsResultWriter {
         
         public ValidationTypeCostSummary getCategoriesCost() { return categoriesCost; }
         public void setCategoriesCost(ValidationTypeCostSummary categoriesCost) { this.categoriesCost = categoriesCost; }
+        
+        public ValidationTypeCostSummary getFindProductCost() { return findProductCost; }
+        public void setFindProductCost(ValidationTypeCostSummary findProductCost) { this.findProductCost = findProductCost; }
     }
 
     /**
