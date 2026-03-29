@@ -149,11 +149,62 @@ public class GoogleSheetsResultWriter {
         // Cost Summary Section
         if (results.getCostSummary() != null) {
             CostSummary cost = results.getCostSummary();
+            
+            // getIntentSummary Section
             data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
-            data.add(Arrays.asList("AI COST SUMMARY"));
+            data.add(Arrays.asList("AI COST SUMMARY - getIntentSummary"));
             data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
             data.add(Arrays.asList("Metric", "Value"));
-            data.add(Arrays.asList("Total LLM Requests", cost.getTotalRequests()));
+            if (cost.getIntentSummaryCost() != null) {
+                ValidationTypeCostSummary intentSummaryCost = cost.getIntentSummaryCost();
+                data.add(Arrays.asList("Evaluations", intentSummaryCost.getCount()));
+                data.add(Arrays.asList("Prompt Tokens", String.format("%,d", intentSummaryCost.getPromptTokens())));
+                data.add(Arrays.asList("Completion Tokens", String.format("%,d", intentSummaryCost.getCompletionTokens())));
+                data.add(Arrays.asList("Total Tokens", String.format("%,d", intentSummaryCost.getTotalTokens())));
+                data.add(Arrays.asList("Input Cost", String.format("$%.6f", intentSummaryCost.getInputCost())));
+                data.add(Arrays.asList("Output Cost", String.format("$%.6f", intentSummaryCost.getOutputCost())));
+                data.add(Arrays.asList("Total Cost", String.format("$%.6f", intentSummaryCost.getTotalCost())));
+                data.add(Arrays.asList("Avg Cost/Evaluation", String.format("$%.6f", intentSummaryCost.getAvgCostPerRequest())));
+                data.add(Arrays.asList("Avg Prompt Tokens", String.format("%.2f", intentSummaryCost.getAvgPromptTokens())));
+                data.add(Arrays.asList("Avg Completion Tokens", String.format("%.2f", intentSummaryCost.getAvgCompletionTokens())));
+            } else {
+                data.add(Arrays.asList("No data", "N/A"));
+            }
+            data.add(Arrays.asList("")); // Empty row
+            
+            // getIntent Section
+            data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
+            data.add(Arrays.asList("AI COST SUMMARY - getIntent"));
+            data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
+            data.add(Arrays.asList("Metric", "Value"));
+            if (cost.getIntentCost() != null) {
+                ValidationTypeCostSummary intentCost = cost.getIntentCost();
+                data.add(Arrays.asList("Evaluations", intentCost.getCount()));
+                data.add(Arrays.asList("Prompt Tokens", String.format("%,d", intentCost.getPromptTokens())));
+                data.add(Arrays.asList("Completion Tokens", String.format("%,d", intentCost.getCompletionTokens())));
+                data.add(Arrays.asList("Total Tokens", String.format("%,d", intentCost.getTotalTokens())));
+                data.add(Arrays.asList("Input Cost", String.format("$%.6f", intentCost.getInputCost())));
+                data.add(Arrays.asList("Output Cost", String.format("$%.6f", intentCost.getOutputCost())));
+                data.add(Arrays.asList("Total Cost", String.format("$%.6f", intentCost.getTotalCost())));
+                data.add(Arrays.asList("Avg Cost/Evaluation", String.format("$%.6f", intentCost.getAvgCostPerRequest())));
+                data.add(Arrays.asList("Avg Prompt Tokens", String.format("%.2f", intentCost.getAvgPromptTokens())));
+                data.add(Arrays.asList("Avg Completion Tokens", String.format("%.2f", intentCost.getAvgCompletionTokens())));
+            } else {
+                data.add(Arrays.asList("No data", "N/A"));
+            }
+            data.add(Arrays.asList("")); // Empty row
+            
+            // Combined Total Section
+            data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
+            data.add(Arrays.asList("COMBINED TOTAL AI COST SUMMARY"));
+            data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
+            data.add(Arrays.asList("Metric", "Value"));
+            data.add(Arrays.asList("Total AI Evaluations", cost.getTotalRequests()));
+            int intentSummaryCount = cost.getIntentSummaryCost() != null ? cost.getIntentSummaryCost().getCount() : 0;
+            int intentCount = cost.getIntentCost() != null ? cost.getIntentCost().getCount() : 0;
+            data.add(Arrays.asList("  - getIntentSummary", intentSummaryCount));
+            data.add(Arrays.asList("  - getIntent", intentCount));
+            data.add(Arrays.asList(""));
             data.add(Arrays.asList("Total Prompt Tokens", String.format("%,d", cost.getTotalPromptTokens())));
             data.add(Arrays.asList("Total Completion Tokens", String.format("%,d", cost.getTotalCompletionTokens())));
             data.add(Arrays.asList("Total Tokens", String.format("%,d", cost.getTotalTokens())));
@@ -162,9 +213,9 @@ public class GoogleSheetsResultWriter {
             data.add(Arrays.asList("Total Output Cost", String.format("$%.6f", cost.getTotalOutputCost())));
             data.add(Arrays.asList("TOTAL COST", String.format("$%.6f", cost.getTotalCost())));
             data.add(Arrays.asList(""));
-            data.add(Arrays.asList("Average Cost per Request", String.format("$%.6f", cost.getAverageCostPerRequest())));
-            data.add(Arrays.asList("Avg Prompt Tokens/Request", String.format("%.2f", cost.getAvgPromptTokensPerRequest())));
-            data.add(Arrays.asList("Avg Completion Tokens/Request", String.format("%.2f", cost.getAvgCompletionTokensPerRequest())));
+            data.add(Arrays.asList("Average Cost per Evaluation", String.format("$%.6f", cost.getAverageCostPerRequest())));
+            data.add(Arrays.asList("Avg Prompt Tokens/Evaluation", String.format("%.2f", cost.getAvgPromptTokensPerRequest())));
+            data.add(Arrays.asList("Avg Completion Tokens/Evaluation", String.format("%.2f", cost.getAvgCompletionTokensPerRequest())));
             data.add(Arrays.asList("")); // Empty row
             
             // Detailed Usage Data
@@ -336,6 +387,8 @@ public class GoogleSheetsResultWriter {
         private double avgPromptTokensPerRequest;
         private double avgCompletionTokensPerRequest;
         private List<UsageDetail> usageDetails = new ArrayList<>();
+        private ValidationTypeCostSummary intentSummaryCost;
+        private ValidationTypeCostSummary intentCost;
 
         // Getters and setters
         public int getTotalRequests() { return totalRequests; }
@@ -371,6 +424,59 @@ public class GoogleSheetsResultWriter {
         public List<UsageDetail> getUsageDetails() { return usageDetails; }
         public void setUsageDetails(List<UsageDetail> usageDetails) { this.usageDetails = usageDetails; }
         public void addUsageDetail(UsageDetail detail) { this.usageDetails.add(detail); }
+        
+        public ValidationTypeCostSummary getIntentSummaryCost() { return intentSummaryCost; }
+        public void setIntentSummaryCost(ValidationTypeCostSummary intentSummaryCost) { this.intentSummaryCost = intentSummaryCost; }
+        
+        public ValidationTypeCostSummary getIntentCost() { return intentCost; }
+        public void setIntentCost(ValidationTypeCostSummary intentCost) { this.intentCost = intentCost; }
+    }
+
+    /**
+     * Cost summary for a specific validation type (getIntentSummary or getIntent)
+     */
+    public static class ValidationTypeCostSummary {
+        private int count;
+        private long promptTokens;
+        private long completionTokens;
+        private long totalTokens;
+        private double inputCost;
+        private double outputCost;
+        private double totalCost;
+        private double avgCostPerRequest;
+        private double avgPromptTokens;
+        private double avgCompletionTokens;
+
+        // Getters and setters
+        public int getCount() { return count; }
+        public void setCount(int count) { this.count = count; }
+        
+        public long getPromptTokens() { return promptTokens; }
+        public void setPromptTokens(long promptTokens) { this.promptTokens = promptTokens; }
+        
+        public long getCompletionTokens() { return completionTokens; }
+        public void setCompletionTokens(long completionTokens) { this.completionTokens = completionTokens; }
+        
+        public long getTotalTokens() { return totalTokens; }
+        public void setTotalTokens(long totalTokens) { this.totalTokens = totalTokens; }
+        
+        public double getInputCost() { return inputCost; }
+        public void setInputCost(double inputCost) { this.inputCost = inputCost; }
+        
+        public double getOutputCost() { return outputCost; }
+        public void setOutputCost(double outputCost) { this.outputCost = outputCost; }
+        
+        public double getTotalCost() { return totalCost; }
+        public void setTotalCost(double totalCost) { this.totalCost = totalCost; }
+        
+        public double getAvgCostPerRequest() { return avgCostPerRequest; }
+        public void setAvgCostPerRequest(double avgCostPerRequest) { this.avgCostPerRequest = avgCostPerRequest; }
+        
+        public double getAvgPromptTokens() { return avgPromptTokens; }
+        public void setAvgPromptTokens(double avgPromptTokens) { this.avgPromptTokens = avgPromptTokens; }
+        
+        public double getAvgCompletionTokens() { return avgCompletionTokens; }
+        public void setAvgCompletionTokens(double avgCompletionTokens) { this.avgCompletionTokens = avgCompletionTokens; }
     }
 
     public static class UsageDetail {

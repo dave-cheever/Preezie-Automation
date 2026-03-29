@@ -48,6 +48,15 @@ public class GoogleSheetsTestRunner {
 
     @Test
     void runGoogleSheetsTests() {
+        // Delete existing usage.csv for a clean report
+        String usageCsvPath = System.getProperty("user.dir") + "/target/usage.csv";
+        try {
+            Files.deleteIfExists(Paths.get(usageCsvPath));
+            System.out.println("Cleared previous usage.csv for clean report");
+        } catch (IOException e) {
+            System.out.println("Warning: Could not delete usage.csv: " + e.getMessage());
+        }
+        
         // Run the Karate tests
         Results results = Runner.path("classpath:com/preezie/tests/chat-google-sheets-validation.feature")
                 .outputCucumberJson(true)
@@ -66,7 +75,6 @@ public class GoogleSheetsTestRunner {
         printResultsSummary(actualResults);
         
         // Generate cost summary from usage.csv
-        String usageCsvPath = System.getProperty("user.dir") + "/target/usage.csv";
         CostCalculator.CostSummary costSummary = generateCostSummary(usageCsvPath);
         
         // Write results to Google Sheets (using actual counts and error details)
@@ -191,23 +199,13 @@ public class GoogleSheetsTestRunner {
                 CostCalculator calculator = new CostCalculator();
                 CostCalculator.CostSummary summary = calculator.calculateSummary(usageDataList);
                 
+                // Print the detailed summary with three sections (getIntentSummary, getIntent, Combined)
                 System.out.println("\n");
-                System.out.println("╔══════════════════════════════════════════════════════════════╗");
-                System.out.println("║                    AI COST SUMMARY                            ║");
-                System.out.println("╠══════════════════════════════════════════════════════════════╣");
-                System.out.println("║  Total Requests:         " + padRight(String.valueOf(summary.getTotalRequests()), 35) + "║");
-                System.out.println("║  Total Prompt Tokens:    " + padRight(String.format("%,d", summary.getTotalPromptTokens()), 35) + "║");
-                System.out.println("║  Total Completion Tokens:" + padRight(String.format("%,d", summary.getTotalCompletionTokens()), 35) + "║");
-                System.out.println("║  Total Tokens:           " + padRight(String.format("%,d", summary.getTotalTokens()), 35) + "║");
-                System.out.println("╠──────────────────────────────────────────────────────────────╣");
-                System.out.println("║  Total Input Cost:       " + padRight("$" + summary.getTotalInputCost(), 35) + "║");
-                System.out.println("║  Total Output Cost:      " + padRight("$" + summary.getTotalOutputCost(), 35) + "║");
-                System.out.println("║  TOTAL COST:             " + padRight("$" + summary.getTotalCost(), 35) + "║");
-                System.out.println("╠──────────────────────────────────────────────────────────────╣");
-                System.out.println("║  Avg Cost/Request:       " + padRight("$" + summary.getAverageCostPerRequest(), 35) + "║");
-                System.out.println("╚══════════════════════════════════════════════════════════════╝");
+                System.out.println(summary.toString());
                 
                 return summary;
+            } else {
+                System.out.println("\n⚠️  No usage data found in: " + usageCsvPath);
             }
         } catch (Exception e) {
             System.out.println("Warning: Could not generate cost summary: " + e.getMessage());
@@ -276,6 +274,40 @@ public class GoogleSheetsTestRunner {
                 sheetsCostSummary.setAverageCostPerRequest(costSummary.getAverageCostPerRequestDouble());
                 sheetsCostSummary.setAvgPromptTokensPerRequest(costSummary.getAvgPromptTokens());
                 sheetsCostSummary.setAvgCompletionTokensPerRequest(costSummary.getAvgCompletionTokens());
+                
+                // Add getIntentSummary breakdown
+                CostCalculator.ValidationTypeSummary intentSummaryData = costSummary.getGetIntentSummarySummary();
+                if (intentSummaryData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary intentSummaryCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    intentSummaryCost.setCount(intentSummaryData.getCount());
+                    intentSummaryCost.setPromptTokens(intentSummaryData.getPromptTokens());
+                    intentSummaryCost.setCompletionTokens(intentSummaryData.getCompletionTokens());
+                    intentSummaryCost.setTotalTokens(intentSummaryData.getTotalTokens());
+                    intentSummaryCost.setInputCost(intentSummaryData.getInputCost().doubleValue());
+                    intentSummaryCost.setOutputCost(intentSummaryData.getOutputCost().doubleValue());
+                    intentSummaryCost.setTotalCost(intentSummaryData.getTotalCost().doubleValue());
+                    intentSummaryCost.setAvgCostPerRequest(intentSummaryData.getAvgCostPerRequest().doubleValue());
+                    intentSummaryCost.setAvgPromptTokens(intentSummaryData.getAvgPromptTokens());
+                    intentSummaryCost.setAvgCompletionTokens(intentSummaryData.getAvgCompletionTokens());
+                    sheetsCostSummary.setIntentSummaryCost(intentSummaryCost);
+                }
+                
+                // Add getIntent breakdown
+                CostCalculator.ValidationTypeSummary intentData = costSummary.getGetIntentSummary();
+                if (intentData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary intentCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    intentCost.setCount(intentData.getCount());
+                    intentCost.setPromptTokens(intentData.getPromptTokens());
+                    intentCost.setCompletionTokens(intentData.getCompletionTokens());
+                    intentCost.setTotalTokens(intentData.getTotalTokens());
+                    intentCost.setInputCost(intentData.getInputCost().doubleValue());
+                    intentCost.setOutputCost(intentData.getOutputCost().doubleValue());
+                    intentCost.setTotalCost(intentData.getTotalCost().doubleValue());
+                    intentCost.setAvgCostPerRequest(intentData.getAvgCostPerRequest().doubleValue());
+                    intentCost.setAvgPromptTokens(intentData.getAvgPromptTokens());
+                    intentCost.setAvgCompletionTokens(intentData.getAvgCompletionTokens());
+                    sheetsCostSummary.setIntentCost(intentCost);
+                }
                 
                 // Add detailed usage data
                 List<UsageData> usageDataList = readUsageData(usageCsvPath);
