@@ -90,5 +90,26 @@
           if (txt) return txt;
         }
        return null;
+      },
+
+    // Get just the userPrompt from promptContent.arguments (not combined with other fields)
+    getUserPromptOnly: function(item) {
+        if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+        var userPrompt = item.promptContent.arguments.userPrompt;
+        if (userPrompt === undefined || userPrompt === null) return null;
+        if (typeof userPrompt !== 'string') userPrompt = String(userPrompt);
+        var trimmed = userPrompt.trim();
+        return trimmed.length ? trimmed : null;
+      },
+
+    getFirstUserPromptOnly: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var txt = this.getUserPromptOnly(arr[i]);
+          if (txt) return txt;
+        }
+        return null;
       }
 })

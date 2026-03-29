@@ -6,9 +6,12 @@ Feature: Chat API - TraceId + CMS validation (Google Sheets Data Driven)
   #
   # Sheets Required:
   #   - tenantConfig: columns [tenantName, tenantId, dataFile, enabled]
-  #   - Blue_Bungalow: columns [content, expectedSafe, intent, enabled]
-  #   - JB_HIFI: columns [content, expectedSafe, intent, enabled]
-  #   - PUMA: columns [content, expectedSafe, intent, enabled]
+  #   - Blue_Bungalow: columns [content, expectedSafe, enabled]
+  #   - JB_HIFI: columns [content, expectedSafe, enabled]
+  #   - PUMA: columns [content, expectedSafe, enabled]
+  #
+  # NOTE: The 'intent' column is no longer required in test data!
+  # getIntent is now validated using AI judge similar to getIntentSummary.
   #
   # IMPORTANT: The Google Sheet must be published to web:
   #   File > Share > Publish to web > Entire Document > CSV
@@ -46,7 +49,6 @@ Scenario: Run all enabled tests from Google Sheets
       var tenantName = testCase.tenantName;
       var content = testCase.content;
       var expectedSafe = testCase.expectedSafe === true || testCase.expectedSafe === 'true' || testCase.expectedSafe === 'TRUE';
-      var expectedIntent = testCase.intent;
       var sessionId = testCase.sessionId || null;
       var visitorId = testCase.visitorId || null;
       var results = karate.get('results');
@@ -55,12 +57,12 @@ Scenario: Run all enabled tests from Google Sheets
       karate.log('========================================');
       karate.log('Testing:', content);
       karate.log('Tenant:', tenantName, '(' + tenantId + ')');
-      karate.log('Expected Safe:', expectedSafe, '| Expected Intent:', expectedIntent);
+      karate.log('Expected Safe:', expectedSafe);
       karate.log('SessionId:', sessionId);
       karate.log('VisitorId:', visitorId);
       karate.log('========================================');
 
-      var traceId = null; // Track traceId for error reporting
+      var traceId = null;
 
       try {
         // 1) Get TraceId from Chat API
@@ -85,7 +87,7 @@ Scenario: Run all enabled tests from Google Sheets
           karate.log('[FAILED] No traceId returned');
           return;
         }
-        traceId = chat.traceId; // Store for error reporting
+        traceId = chat.traceId;
         karate.log('TraceId:', chat.traceId);
 
         // 2) CMS trace lookup
@@ -183,35 +185,81 @@ Scenario: Run all enabled tests from Google Sheets
           return;
         }
 
-        // 5) Validate getIntent.Intent (if present)
-        karate.log('Step 5: Validating getIntent.Intent...');
+        // 5) Validate getIntent with AI Judge (no longer uses test data intent column)
+        karate.log('Step 5: Validating getIntent with AI Judge...');
         var getIntentItems = karate.filter(traceData, function(x){ return x.agentName == 'getIntent' });
         karate.log('getIntent items found:', getIntentItems.length);
 
-        if (getIntentItems.length > 0 && expectedIntent) {
-          var intent = karate.call('classpath:com/preezie/services/cms/extract-agent-json-key.feature', {
-            data: traceData,
-            agentName: 'getIntent',
-            key: 'Intent'
-          });
-          karate.log('getIntent.Intent - Expected:', expectedIntent, 'Actual:', intent.value);
+        if (getIntentItems.length > 0) {
+          var intentLlmResponseText = utils.getFirstLLMResponseText(getIntentItems);
+          var intentPromptArgumentsText = utils.getFirstLLMPromptArgumentsText(getIntentItems);
+          var intentLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(getIntentItems);
 
-          if (intent.value !== expectedIntent) {
+          // Use the actual UserMessage from getIntent's prompt arguments, not the test content
+          var intentUserMessage = utils.getFirstUserPromptOnly(getIntentItems);
+          karate.log('getIntent UserMessage from trace:', intentUserMessage ? intentUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('getIntent LLM Response:', intentLlmResponseText ? intentLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var intentEvalArgs = {
+            PromptArguments: intentPromptArgumentsText,
+            LLMRequestFormattedPrompt: intentLlmRequestFormatedText,
+            UserMessage: intentUserMessage || content,  // Fallback to content if userPrompt not found
+            ResponseLLM: intentLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var intentEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-intent-evaluator.feature', intentEvalArgs);
+          karate.log('Intent Evaluator result - pass:', intentEvalResult && intentEvalResult.intentValidationOut ? intentEvalResult.intentValidationOut.pass : 'undefined');
+
+          var intentValidation = intentEvalResult ? intentEvalResult.intentValidationOut : null;
+          var intentPassed = intentValidation && intentValidation.pass === true;
+
+          if (!intentPassed) {
             results.failed++;
+
+            var intentErrorDetails = '';
+            if (intentValidation) {
+              if (intentValidation.scores) {
+                intentErrorDetails += 'Scores: relevance=' + (intentValidation.scores.relevance || 'N/A') +
+                  ', faithfulness=' + (intentValidation.scores.faithfulness || 'N/A') +
+                  ', instructionCompliance=' + (intentValidation.scores.instructionCompliance || 'N/A') +
+                  ', semanticCloseness=' + (intentValidation.scores.semanticCloseness || 'N/A') + '. ';
+              }
+              // Include classified intent info from AI
+              var parsedContent = intentEvalResult.intentEvaluatorResultOut ? intentEvalResult.intentEvaluatorResultOut.parsedContent : null;
+              if (parsedContent) {
+                if (parsedContent.classifiedIntent) {
+                  intentErrorDetails += 'Classified Intent: ' + parsedContent.classifiedIntent + '. ';
+                }
+                if (parsedContent.expectedIntentCategory) {
+                  intentErrorDetails += 'Expected Category: ' + parsedContent.expectedIntentCategory + '. ';
+                }
+              }
+              if (intentValidation.issues && intentValidation.issues.length > 0) {
+                intentErrorDetails += 'Issues: ' + intentValidation.issues.join('; ') + '. ';
+              }
+              if (intentValidation.summary) {
+                intentErrorDetails += 'Summary: ' + intentValidation.summary;
+              }
+            } else {
+              intentErrorDetails = 'Intent LLM evaluation failed or returned no validation';
+            }
+
             results.errors.push({
               tenant: tenantName,
               tenantId: tenantId,
               content: content,
               traceId: traceId,
               stage: 'getIntent',
-              expected: expectedIntent,
-              actual: intent.value
+              error: intentErrorDetails,
+              responseLLM: intentLlmResponseText ? (intentLlmResponseText.length > 300 ? intentLlmResponseText.substring(0, 300) + '...' : intentLlmResponseText) : ''
             });
-            karate.log('[FAILED] getIntent - Expected:', expectedIntent, 'Actual:', intent.value);
+            karate.log('[FAILED] getIntent validation:', intentErrorDetails);
             return;
           }
         } else {
-          karate.log('Skipping getIntent validation (not present or no expected value)');
+          karate.log('Skipping getIntent validation (not present in trace data)');
         }
 
         // All validations passed
@@ -269,9 +317,6 @@ Scenario: Run all enabled tests from Google Sheets
         }
         if (err.responseLLM) {
           karate.log('  ResponseLLM: ' + err.responseLLM);
-        }
-        if (err.validation && typeof err.validation === 'object') {
-          karate.log('  Validation: ' + JSON.stringify(err.validation, null, 2));
         }
       }
       karate.log('');

@@ -1,0 +1,52 @@
+INPUTS:
+
+PromptArguments:
+{{PromptArguments}}
+
+LLMRequestFormattedPrompt:
+{{LLMRequestFormattedPrompt}}
+
+UserMessage:
+{{UserMessage}}
+
+AssistantResponse (Intent Classification Result):
+{{ResponseLLM}}
+
+TASK:
+
+1. Review the LLMRequestFormattedPrompt to understand what intent categories are available.
+2. Analyze the UserMessage to understand what the user is trying to accomplish.
+3. Determine whether the Intent in AssistantResponse is:
+   - Correctly classified based on the user's message
+   - Appropriate for the context given in PromptArguments
+   - Consistent with the available intent categories
+4. Judge correctness of classification, not exact wording.
+
+SCORING RULES (0–5):
+- relevance: the intent correctly addresses what the user wants
+- faithfulness: no misclassification or invented intents
+- instructionCompliance: follows the intent categories defined in the prompt
+- semanticCloseness: the classified intent accurately represents user's intention
+
+PASS CONDITIONS:
+- relevance >= 4
+- faithfulness >= 4
+- instructionCompliance >= 4
+- semanticCloseness >= 4
+
+RETURN ONLY THIS JSON STRUCTURE:
+
+{
+  "pass": true | false,
+  "scores": {
+    "relevance": number,
+    "faithfulness": number,
+    "instructionCompliance": number,
+    "semanticCloseness": number
+  },
+  "classifiedIntent": "the intent value from AssistantResponse",
+  "expectedIntentCategory": "what category you believe is correct based on UserMessage",
+  "issues": [string],
+  "summary": "short explanation of why the classification is correct or incorrect"
+}
+
