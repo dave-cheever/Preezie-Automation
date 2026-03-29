@@ -1,6 +1,6 @@
 INPUTS:
 
-PromptArguments:
+PromptArguments (contains userPrompt, chatHistory, productRecommendationHistory, lastDiscussedProduct):
 {{PromptArguments}}
 
 LLMRequestFormattedPrompt:
@@ -14,12 +14,17 @@ AssistantResponse (ResponseLLM):
 
 TASK:
 
-1. Infer the intended meaning and constraints implied by PromptArguments and LLMRequestFormattedPrompt.
-2. Determine whether AssistantResponse is:
+1. Review PromptArguments to understand the context:
+   - userPrompt: the user's original message
+   - chatHistory: previous conversation messages
+   - productRecommendationHistory: products that were previously recommended
+   - lastDiscussedProduct: the most recently discussed product
+2. Infer the intended meaning and constraints implied by PromptArguments and LLMRequestFormattedPrompt.
+3. Determine whether AssistantResponse is:
    - Semantically aligned with the intended interpretation
-   - Faithful to the given rules
+   - Faithful to the given rules and context
    - Free from hallucinated or invented information
-3. Judge closeness of meaning, not wording.
+4. Judge closeness of meaning, not wording.
 
 SCORING RULES (0–5):
 - relevance: answers the user’s intent

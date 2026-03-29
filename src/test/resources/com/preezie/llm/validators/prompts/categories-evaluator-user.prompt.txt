@@ -1,0 +1,57 @@
+INPUTS:
+
+PromptArguments (contains userPrompt, brandOverview, lastDiscussedCategories):
+{{PromptArguments}}
+
+LLMRequestFormattedPrompt:
+{{LLMRequestFormattedPrompt}}
+
+UserMessage:
+{{UserMessage}}
+
+AssistantResponse (Category Classification Result):
+{{ResponseLLM}}
+
+TASK:
+
+1. Review the LLMRequestFormattedPrompt to understand what categories are available and the rules for classification.
+2. Review PromptArguments to understand:
+   - userPrompt: the user's original message
+   - brandOverview: context about the brand/store
+   - lastDiscussedCategories: categories from previous conversation
+3. Analyze the UserMessage to understand what the user is looking for.
+4. Determine whether the categories in AssistantResponse are:
+   - Relevant to the user's request
+   - Appropriate for the context given in PromptArguments
+   - Consistent with the available category taxonomy
+   - Correctly prioritized (if ordering matters)
+5. Judge correctness of classification, not exact wording or format.
+
+SCORING RULES (0–5):
+- relevance: the categories correctly address what the user is looking for
+- faithfulness: no misclassification, invented categories, or hallucinations
+- instructionCompliance: follows the category rules and schema defined in the prompt
+- semanticCloseness: the classified categories accurately represent user's shopping intent
+
+PASS CONDITIONS:
+- relevance >= 4
+- faithfulness >= 4
+- instructionCompliance >= 4
+- semanticCloseness >= 4
+
+RETURN ONLY THIS JSON STRUCTURE:
+
+{
+  "pass": true | false,
+  "scores": {
+    "relevance": number,
+    "faithfulness": number,
+    "instructionCompliance": number,
+    "semanticCloseness": number
+  },
+  "classifiedCategories": "list or summary of categories from AssistantResponse",
+  "expectedCategories": "what categories you believe are appropriate based on UserMessage",
+  "issues": [string],
+  "summary": "short explanation of why the classification is correct or incorrect"
+}
+
