@@ -93,6 +93,7 @@ public class GoogleSheetsTestRunner {
         String tenantId;
         String tenantName;
         String content;
+        String traceId;
         String failedStage;
         String expected;
         String actual;
@@ -122,6 +123,7 @@ public class GoogleSheetsTestRunner {
                     failedTest.tenantId = errorNode.path("tenantId").asText("");
                     failedTest.tenantName = errorNode.path("tenantName").asText("Unknown");
                     failedTest.content = errorNode.path("content").asText("");
+                    failedTest.traceId = errorNode.path("traceId").asText("N/A");
                     failedTest.failedStage = errorNode.path("failedStage").asText("");
                     failedTest.expected = errorNode.path("expected").asText("");
                     failedTest.actual = errorNode.path("actual").asText("");
@@ -168,6 +170,7 @@ public class GoogleSheetsTestRunner {
                 System.out.println("\n--- Failure " + (i + 1) + " of " + actualResults.errors.size() + " ---");
                 System.out.println("  Tenant:      " + err.tenantName + " (" + err.tenantId + ")");
                 System.out.println("  Content:     " + err.content);
+                System.out.println("  Trace ID:    " + err.traceId);
                 System.out.println("  Failed At:   " + err.failedStage);
                 if (!err.expected.isEmpty()) {
                     System.out.println("  Expected:    " + err.expected);
@@ -254,6 +257,7 @@ public class GoogleSheetsTestRunner {
                     err.tenantId,
                     err.tenantName,
                     err.content,
+                    err.traceId,
                     err.failedStage,
                     buildErrorMessage(err)
                 ));
@@ -352,6 +356,7 @@ public class GoogleSheetsTestRunner {
                 tenantId != null ? tenantId.trim() : "",
                 tenantName.trim(),
                 content != null ? content.trim() : "",
+                "N/A",  // traceId not available in legacy parsing
                 failedStage != null ? failedStage.trim() : "",
                 error != null ? error.trim() : section.trim()
             ));

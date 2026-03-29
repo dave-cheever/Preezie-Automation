@@ -23,6 +23,7 @@ Feature: Chat service - send message and return traceId
     * set req.visitorId = visitorIdLocal
 
     Given url baseUrl
+
     And path '/api/chat'
     And header Tenantid = tenantIdLocal
     And request req

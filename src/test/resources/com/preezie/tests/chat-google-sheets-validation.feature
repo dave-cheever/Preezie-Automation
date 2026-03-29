@@ -60,6 +60,8 @@ Scenario: Run all enabled tests from Google Sheets
       karate.log('VisitorId:', visitorId);
       karate.log('========================================');
 
+      var traceId = null; // Track traceId for error reporting
+
       try {
         // 1) Get TraceId from Chat API
         karate.log('Step 1: Getting TraceId from Chat API...');
@@ -76,12 +78,14 @@ Scenario: Run all enabled tests from Google Sheets
             tenant: tenantName,
             tenantId: tenantId,
             content: content,
+            traceId: 'N/A',
             stage: 'Chat API',
             error: 'No traceId returned'
           });
           karate.log('[FAILED] No traceId returned');
           return;
         }
+        traceId = chat.traceId; // Store for error reporting
         karate.log('TraceId:', chat.traceId);
 
         // 2) CMS trace lookup
@@ -110,6 +114,7 @@ Scenario: Run all enabled tests from Google Sheets
             tenant: tenantName,
             tenantId: tenantId,
             content: content,
+            traceId: traceId,
             stage: 'promptGlobalFilter',
             expected: expectedSafe,
             actual: pgf.value
@@ -118,38 +123,8 @@ Scenario: Run all enabled tests from Google Sheets
           return;
         }
 
-        // 4) Validate getIntent.Intent (if present)
-        karate.log('Step 4: Validating getIntent.Intent...');
-        var getIntentItems = karate.filter(traceData, function(x){ return x.agentName == 'getIntent' });
-        karate.log('getIntent items found:', getIntentItems.length);
-
-        if (getIntentItems.length > 0 && expectedIntent) {
-          var intent = karate.call('classpath:com/preezie/services/cms/extract-agent-json-key.feature', {
-            data: traceData,
-            agentName: 'getIntent',
-            key: 'Intent'
-          });
-          karate.log('getIntent.Intent - Expected:', expectedIntent, 'Actual:', intent.value);
-
-          if (intent.value !== expectedIntent) {
-            results.failed++;
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              stage: 'getIntent',
-              expected: expectedIntent,
-              actual: intent.value
-            });
-            karate.log('[FAILED] getIntent - Expected:', expectedIntent, 'Actual:', intent.value);
-            return;
-          }
-        } else {
-          karate.log('Skipping getIntent validation (not present or no expected value)');
-        }
-
-        // 5) Validate getIntentSummary with LLM evaluator
-        karate.log('Step 5: Validating getIntentSummary with LLM evaluator...');
+        // 4) Validate getIntentSummary with LLM evaluator
+        karate.log('Step 4: Validating getIntentSummary with LLM evaluator...');
         var intentSummaryItems = karate.filter(traceData, function(x){ return x.agentName == 'getIntentSummary' });
         karate.log('getIntentSummary items found:', intentSummaryItems.length);
 
@@ -199,12 +174,44 @@ Scenario: Run all enabled tests from Google Sheets
             tenant: tenantName,
             tenantId: tenantId,
             content: content,
+            traceId: traceId,
             stage: 'getIntentSummary',
             error: errorDetails,
             responseLLM: llmResponseText ? (llmResponseText.length > 300 ? llmResponseText.substring(0, 300) + '...' : llmResponseText) : ''
           });
           karate.log('[FAILED] getIntentSummary validation:', errorDetails);
           return;
+        }
+
+        // 5) Validate getIntent.Intent (if present)
+        karate.log('Step 5: Validating getIntent.Intent...');
+        var getIntentItems = karate.filter(traceData, function(x){ return x.agentName == 'getIntent' });
+        karate.log('getIntent items found:', getIntentItems.length);
+
+        if (getIntentItems.length > 0 && expectedIntent) {
+          var intent = karate.call('classpath:com/preezie/services/cms/extract-agent-json-key.feature', {
+            data: traceData,
+            agentName: 'getIntent',
+            key: 'Intent'
+          });
+          karate.log('getIntent.Intent - Expected:', expectedIntent, 'Actual:', intent.value);
+
+          if (intent.value !== expectedIntent) {
+            results.failed++;
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'getIntent',
+              expected: expectedIntent,
+              actual: intent.value
+            });
+            karate.log('[FAILED] getIntent - Expected:', expectedIntent, 'Actual:', intent.value);
+            return;
+          }
+        } else {
+          karate.log('Skipping getIntent validation (not present or no expected value)');
         }
 
         // All validations passed
@@ -217,6 +224,7 @@ Scenario: Run all enabled tests from Google Sheets
           tenant: tenantName,
           tenantId: tenantId,
           content: content,
+          traceId: traceId || 'N/A',
           stage: 'Exception',
           error: e.message || String(e)
         });
@@ -250,6 +258,7 @@ Scenario: Run all enabled tests from Google Sheets
         karate.log('[FAILURE ' + (i + 1) + ' of ' + results.errors.length + ']');
         karate.log('  Tenant: ' + err.tenant + ' (' + err.tenantId + ')');
         karate.log('  Content: ' + err.content);
+        karate.log('  TraceId: ' + (err.traceId || 'N/A'));
         karate.log('  Failed At: ' + err.stage);
         if (err.expected !== undefined) {
           karate.log('  Expected: ' + err.expected);
@@ -292,6 +301,7 @@ Scenario: Run all enabled tests from Google Sheets
             tenantId: err.tenantId || '',
             tenantName: err.tenant || 'Unknown',
             content: err.content || '',
+            traceId: err.traceId || 'N/A',
             failedStage: err.stage || '',
             expected: err.expected !== undefined ? String(err.expected) : '',
             actual: err.actual !== undefined ? String(err.actual) : '',

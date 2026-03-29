@@ -131,13 +131,14 @@ public class GoogleSheetsResultWriter {
             data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
             data.add(Arrays.asList("FAILED TESTS DETAILS"));
             data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
-            data.add(Arrays.asList("Tenant ID", "Tenant Name", "Content", "Failed Stage", "Error Message"));
+            data.add(Arrays.asList("Tenant ID", "Tenant Name", "Content", "Trace ID", "Failed Stage", "Error Message"));
             
             for (FailedTest failedTest : results.getFailedTests()) {
                 data.add(Arrays.asList(
                     failedTest.getTenantId(),
                     failedTest.getTenantName(),
                     failedTest.getContent(),
+                    failedTest.getTraceId(),
                     failedTest.getFailedStage(),
                     failedTest.getErrorMessage()
                 ));
@@ -302,13 +303,15 @@ public class GoogleSheetsResultWriter {
         private String tenantId;
         private String tenantName;
         private String content;
+        private String traceId;
         private String failedStage;
         private String errorMessage;
 
-        public FailedTest(String tenantId, String tenantName, String content, String failedStage, String errorMessage) {
+        public FailedTest(String tenantId, String tenantName, String content, String traceId, String failedStage, String errorMessage) {
             this.tenantId = tenantId;
             this.tenantName = tenantName;
             this.content = content;
+            this.traceId = traceId;
             this.failedStage = failedStage;
             this.errorMessage = errorMessage;
         }
@@ -316,6 +319,7 @@ public class GoogleSheetsResultWriter {
         public String getTenantId() { return tenantId; }
         public String getTenantName() { return tenantName; }
         public String getContent() { return content; }
+        public String getTraceId() { return traceId; }
         public String getFailedStage() { return failedStage; }
         public String getErrorMessage() { return errorMessage; }
     }
