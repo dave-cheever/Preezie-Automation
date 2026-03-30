@@ -493,6 +493,83 @@ Scenario: Run all enabled tests from Google Sheets
           karate.log('Skipping smartResponse validation (not present in trace data)');
         }
 
+        // 9) Validate getUserInformation with AI Judge
+        karate.log('Step 9: Validating getUserInformation with AI Judge...');
+        var getUserInformationItems = karate.filter(traceData, function(x){ return x.agentName == 'getUserInformation' });
+        karate.log('getUserInformation items found:', getUserInformationItems.length);
+
+        if (getUserInformationItems.length > 0) {
+          var getUserInformationLlmResponseText = utils.getFirstLLMResponseText(getUserInformationItems);
+          var getUserInformationPromptArgumentsObj = utils.getFirstUserInformationPromptArguments(getUserInformationItems);
+          var getUserInformationLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(getUserInformationItems);
+
+          // Use the actual UserMessage from getUserInformation's prompt arguments
+          var getUserInformationUserMessage = utils.getFirstUserPromptOnly(getUserInformationItems);
+          karate.log('getUserInformation UserMessage from trace:', getUserInformationUserMessage ? getUserInformationUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('getUserInformation LLM Response:', getUserInformationLlmResponseText ? getUserInformationLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var getUserInformationEvalArgs = {
+            PromptArguments: getUserInformationPromptArgumentsObj,
+            LLMRequestFormattedPrompt: getUserInformationLlmRequestFormatedText,
+            UserMessage: getUserInformationUserMessage || content,  // Fallback to content if userPrompt not found
+            ResponseLLM: getUserInformationLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var getUserInformationEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-getuserinformation-evaluator.feature', getUserInformationEvalArgs);
+          karate.log('GetUserInformation Evaluator result - pass:', getUserInformationEvalResult && getUserInformationEvalResult.getUserInformationValidationOut ? getUserInformationEvalResult.getUserInformationValidationOut.pass : 'undefined');
+
+          var getUserInformationValidation = getUserInformationEvalResult ? getUserInformationEvalResult.getUserInformationValidationOut : null;
+          var getUserInformationPassed = getUserInformationValidation && getUserInformationValidation.pass === true;
+
+          if (!getUserInformationPassed) {
+            results.failed++;
+
+            var getUserInformationErrorDetails = '';
+            if (getUserInformationValidation) {
+              if (getUserInformationValidation.scores) {
+                getUserInformationErrorDetails += 'Scores: relevance=' + (getUserInformationValidation.scores.relevance || 'N/A') +
+                  ', faithfulness=' + (getUserInformationValidation.scores.faithfulness || 'N/A') +
+                  ', instructionCompliance=' + (getUserInformationValidation.scores.instructionCompliance || 'N/A') +
+                  ', semanticCloseness=' + (getUserInformationValidation.scores.semanticCloseness || 'N/A') + '. ';
+              }
+              // Include extracted info from AI
+              var parsedGetUserInformationContent = getUserInformationEvalResult.getUserInformationEvaluatorResultOut ? getUserInformationEvalResult.getUserInformationEvaluatorResultOut.parsedContent : null;
+              if (parsedGetUserInformationContent) {
+                if (parsedGetUserInformationContent.extractedInfo) {
+                  getUserInformationErrorDetails += 'Extracted Info: ' + parsedGetUserInformationContent.extractedInfo + '. ';
+                }
+                if (parsedGetUserInformationContent.expectedInfo) {
+                  getUserInformationErrorDetails += 'Expected Info: ' + parsedGetUserInformationContent.expectedInfo + '. ';
+                }
+              }
+              if (getUserInformationValidation.issues && getUserInformationValidation.issues.length > 0) {
+                getUserInformationErrorDetails += 'Issues: ' + getUserInformationValidation.issues.join('; ') + '. ';
+              }
+              if (getUserInformationValidation.summary) {
+                getUserInformationErrorDetails += 'Summary: ' + getUserInformationValidation.summary;
+              }
+            } else {
+              getUserInformationErrorDetails = 'GetUserInformation LLM evaluation failed or returned no validation';
+            }
+
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'getUserInformation',
+              error: getUserInformationErrorDetails,
+              responseLLM: getUserInformationLlmResponseText ? (getUserInformationLlmResponseText.length > 300 ? getUserInformationLlmResponseText.substring(0, 300) + '...' : getUserInformationLlmResponseText) : ''
+            });
+            karate.log('[FAILED] getUserInformation validation:', getUserInformationErrorDetails);
+            return;
+          }
+        } else {
+          karate.log('Skipping getUserInformation validation (not present in trace data)');
+        }
+
         // All validations passed
         results.passed++;
         karate.log('[PASSED] All validations passed for:', content);
