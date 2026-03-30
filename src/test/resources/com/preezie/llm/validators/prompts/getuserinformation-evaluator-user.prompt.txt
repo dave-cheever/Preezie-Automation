@@ -1,0 +1,58 @@
+INPUTS:
+
+PromptArguments (contains userPrompt, brandOverview):
+{{PromptArguments}}
+
+LLMRequestFormattedPrompt:
+{{LLMRequestFormattedPrompt}}
+
+UserMessage:
+{{UserMessage}}
+
+AssistantResponse (User Information Extraction Result):
+{{ResponseLLM}}
+
+TASK:
+
+1. Review the LLMRequestFormattedPrompt to understand the expected output format and rules.
+2. Review PromptArguments to understand:
+   - userPrompt: the user's original message/conversation context
+   - brandOverview: the brand context for understanding user needs
+3. Analyze the UserMessage to understand what user information should be extracted.
+4. Determine whether the user information in AssistantResponse:
+   - Correctly extracts user details from the conversation
+   - Identifies relevant user preferences, needs, or characteristics
+   - Does not fabricate information not present in the conversation
+   - Follows the expected output format
+   - Is relevant to the brand context
+5. Judge correctness of the extraction, not exact wording.
+
+SCORING RULES (0–5):
+- relevance: the extracted information is relevant to the user's needs and brand context
+- faithfulness: no hallucinated details, invented preferences, or fabricated user information
+- instructionCompliance: follows the extraction format and rules defined in the prompt
+- semanticCloseness: the extraction accurately captures user's actual characteristics and needs
+
+PASS CONDITIONS:
+- relevance >= 4
+- faithfulness >= 4
+- instructionCompliance >= 4
+- semanticCloseness >= 4
+
+RETURN ONLY THIS JSON STRUCTURE:
+
+{
+  "pass": true | false,
+  "scores": {
+    "relevance": number,
+    "faithfulness": number,
+    "instructionCompliance": number,
+    "semanticCloseness": number
+  },
+  "extractedInfo": "summary of user information extracted from AssistantResponse",
+  "expectedInfo": "what user information you believe should be extracted based on UserMessage",
+  "issues": [string],
+  "summary": "short explanation of why the user information extraction is correct or incorrect"
+}
+
+

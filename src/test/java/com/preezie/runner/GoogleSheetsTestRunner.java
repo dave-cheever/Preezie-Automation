@@ -360,6 +360,23 @@ public class GoogleSheetsTestRunner {
                     sheetsCostSummary.setSmartResponseCost(smartResponseCost);
                 }
                 
+                // Add getUserInformation breakdown
+                CostCalculator.ValidationTypeSummary getUserInformationData = costSummary.getGetUserInformationSummary();
+                if (getUserInformationData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary getUserInformationCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    getUserInformationCost.setCount(getUserInformationData.getCount());
+                    getUserInformationCost.setPromptTokens(getUserInformationData.getPromptTokens());
+                    getUserInformationCost.setCompletionTokens(getUserInformationData.getCompletionTokens());
+                    getUserInformationCost.setTotalTokens(getUserInformationData.getTotalTokens());
+                    getUserInformationCost.setInputCost(getUserInformationData.getInputCost().doubleValue());
+                    getUserInformationCost.setOutputCost(getUserInformationData.getOutputCost().doubleValue());
+                    getUserInformationCost.setTotalCost(getUserInformationData.getTotalCost().doubleValue());
+                    getUserInformationCost.setAvgCostPerRequest(getUserInformationData.getAvgCostPerRequest().doubleValue());
+                    getUserInformationCost.setAvgPromptTokens(getUserInformationData.getAvgPromptTokens());
+                    getUserInformationCost.setAvgCompletionTokens(getUserInformationData.getAvgCompletionTokens());
+                    sheetsCostSummary.setGetUserInformationCost(getUserInformationCost);
+                }
+                
                 // Add detailed usage data
                 List<UsageData> usageDataList = readUsageData(usageCsvPath);
                 for (UsageData usage : usageDataList) {
