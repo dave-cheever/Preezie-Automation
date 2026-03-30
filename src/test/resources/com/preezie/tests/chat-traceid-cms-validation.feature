@@ -1,18 +1,13 @@
 Feature: Chat API - TraceId (data driven) + CMS validation
   # ============================================================================
-  # TEST DATA IS NOW IN EXTERNAL CSV FILES!
+  # DEPRECATED: This file uses inline Scenario Outline test data.
   # ============================================================================
-  # Location: src/test/resources/testdata/
-  # Files:
-  #   - Blue_Bungalow.csv  (tenantId: tnt_pJ22NGJQXirUT0Y)
-  #   - JB_HIFI.csv        (tenantId: tnt_sJaLLkeEMDVUI9G)
-  #   - PUMA.csv           (tenantId: tnt_sZSeICB9hop90GD)
-  #   - tenant-config.json (enable/disable tenants)
+  # For the primary test runner, use:
+  #   - chat-google-sheets-validation.feature (Google Sheets data driven)
+  #   - GoogleSheetsTestRunner.java
   #
-  # To run tenant-specific tests, use the new feature files in:
-  #   src/test/resources/com/preezie/tests/tenants/
-  #
-  # Or use TenantTestRunner.java
+  # Test data is now managed in Google Sheets:
+  #   https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit
   # ============================================================================
 
 Background:
