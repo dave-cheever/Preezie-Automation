@@ -205,5 +205,28 @@
           if (txt) return txt;
         }
         return null;
+      },
+
+  // ========== smartResponse Prompt Arguments ==========
+  // Fields: userPrompt, baseProduct, products
+  getSmartResponsePromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        userPrompt: args.userPrompt || '',
+        baseProduct: args.baseProduct || '',
+        products: args.products || ''
+      };
+    },
+
+    getFirstSmartResponsePromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getSmartResponsePromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
       }
 })
