@@ -343,6 +343,23 @@ public class GoogleSheetsTestRunner {
                     sheetsCostSummary.setFindProductCost(findProductCost);
                 }
                 
+                // Add smartResponse breakdown
+                CostCalculator.ValidationTypeSummary smartResponseData = costSummary.getGetSmartResponseSummary();
+                if (smartResponseData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary smartResponseCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    smartResponseCost.setCount(smartResponseData.getCount());
+                    smartResponseCost.setPromptTokens(smartResponseData.getPromptTokens());
+                    smartResponseCost.setCompletionTokens(smartResponseData.getCompletionTokens());
+                    smartResponseCost.setTotalTokens(smartResponseData.getTotalTokens());
+                    smartResponseCost.setInputCost(smartResponseData.getInputCost().doubleValue());
+                    smartResponseCost.setOutputCost(smartResponseData.getOutputCost().doubleValue());
+                    smartResponseCost.setTotalCost(smartResponseData.getTotalCost().doubleValue());
+                    smartResponseCost.setAvgCostPerRequest(smartResponseData.getAvgCostPerRequest().doubleValue());
+                    smartResponseCost.setAvgPromptTokens(smartResponseData.getAvgPromptTokens());
+                    smartResponseCost.setAvgCompletionTokens(smartResponseData.getAvgCompletionTokens());
+                    sheetsCostSummary.setSmartResponseCost(smartResponseCost);
+                }
+                
                 // Add detailed usage data
                 List<UsageData> usageDataList = readUsageData(usageCsvPath);
                 for (UsageData usage : usageDataList) {

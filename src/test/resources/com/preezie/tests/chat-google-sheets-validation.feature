@@ -416,6 +416,83 @@ Scenario: Run all enabled tests from Google Sheets
           karate.log('Skipping findProductFromPrompt validation (not present in trace data)');
         }
 
+        // 8) Validate smartResponse with AI Judge
+        karate.log('Step 8: Validating smartResponse with AI Judge...');
+        var smartResponseItems = karate.filter(traceData, function(x){ return x.agentName == 'smartResponse' });
+        karate.log('smartResponse items found:', smartResponseItems.length);
+
+        if (smartResponseItems.length > 0) {
+          var smartResponseLlmResponseText = utils.getFirstLLMResponseText(smartResponseItems);
+          var smartResponsePromptArgumentsObj = utils.getFirstSmartResponsePromptArguments(smartResponseItems);
+          var smartResponseLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(smartResponseItems);
+
+          // Use the actual UserMessage from smartResponse's prompt arguments
+          var smartResponseUserMessage = utils.getFirstUserPromptOnly(smartResponseItems);
+          karate.log('smartResponse UserMessage from trace:', smartResponseUserMessage ? smartResponseUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('smartResponse LLM Response:', smartResponseLlmResponseText ? smartResponseLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var smartResponseEvalArgs = {
+            PromptArguments: smartResponsePromptArgumentsObj,
+            LLMRequestFormattedPrompt: smartResponseLlmRequestFormatedText,
+            UserMessage: smartResponseUserMessage || content,  // Fallback to content if userPrompt not found
+            ResponseLLM: smartResponseLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var smartResponseEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-smartresponse-evaluator.feature', smartResponseEvalArgs);
+          karate.log('SmartResponse Evaluator result - pass:', smartResponseEvalResult && smartResponseEvalResult.smartResponseValidationOut ? smartResponseEvalResult.smartResponseValidationOut.pass : 'undefined');
+
+          var smartResponseValidation = smartResponseEvalResult ? smartResponseEvalResult.smartResponseValidationOut : null;
+          var smartResponsePassed = smartResponseValidation && smartResponseValidation.pass === true;
+
+          if (!smartResponsePassed) {
+            results.failed++;
+
+            var smartResponseErrorDetails = '';
+            if (smartResponseValidation) {
+              if (smartResponseValidation.scores) {
+                smartResponseErrorDetails += 'Scores: relevance=' + (smartResponseValidation.scores.relevance || 'N/A') +
+                  ', faithfulness=' + (smartResponseValidation.scores.faithfulness || 'N/A') +
+                  ', instructionCompliance=' + (smartResponseValidation.scores.instructionCompliance || 'N/A') +
+                  ', semanticCloseness=' + (smartResponseValidation.scores.semanticCloseness || 'N/A') + '. ';
+              }
+              // Include response type and products referenced from AI
+              var parsedSmartResponseContent = smartResponseEvalResult.smartResponseEvaluatorResultOut ? smartResponseEvalResult.smartResponseEvaluatorResultOut.parsedContent : null;
+              if (parsedSmartResponseContent) {
+                if (parsedSmartResponseContent.responseType) {
+                  smartResponseErrorDetails += 'Response Type: ' + parsedSmartResponseContent.responseType + '. ';
+                }
+                if (parsedSmartResponseContent.productsReferenced) {
+                  smartResponseErrorDetails += 'Products Referenced: ' + parsedSmartResponseContent.productsReferenced + '. ';
+                }
+              }
+              if (smartResponseValidation.issues && smartResponseValidation.issues.length > 0) {
+                smartResponseErrorDetails += 'Issues: ' + smartResponseValidation.issues.join('; ') + '. ';
+              }
+              if (smartResponseValidation.summary) {
+                smartResponseErrorDetails += 'Summary: ' + smartResponseValidation.summary;
+              }
+            } else {
+              smartResponseErrorDetails = 'SmartResponse LLM evaluation failed or returned no validation';
+            }
+
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'smartResponse',
+              error: smartResponseErrorDetails,
+              responseLLM: smartResponseLlmResponseText ? (smartResponseLlmResponseText.length > 300 ? smartResponseLlmResponseText.substring(0, 300) + '...' : smartResponseLlmResponseText) : ''
+            });
+            karate.log('[FAILED] smartResponse validation:', smartResponseErrorDetails);
+            return;
+          }
+        } else {
+          karate.log('Skipping smartResponse validation (not present in trace data)');
+        }
+
         // All validations passed
         results.passed++;
         karate.log('[PASSED] All validations passed for:', content);

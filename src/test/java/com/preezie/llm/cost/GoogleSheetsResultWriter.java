@@ -238,6 +238,28 @@ public class GoogleSheetsResultWriter {
             }
             data.add(Arrays.asList("")); // Empty row
             
+            // smartResponse Section
+            data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
+            data.add(Arrays.asList("AI COST SUMMARY - smartResponse"));
+            data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
+            data.add(Arrays.asList("Metric", "Value"));
+            if (cost.getSmartResponseCost() != null) {
+                ValidationTypeCostSummary smartResponseCost = cost.getSmartResponseCost();
+                data.add(Arrays.asList("Evaluations", smartResponseCost.getCount()));
+                data.add(Arrays.asList("Prompt Tokens", String.format("%,d", smartResponseCost.getPromptTokens())));
+                data.add(Arrays.asList("Completion Tokens", String.format("%,d", smartResponseCost.getCompletionTokens())));
+                data.add(Arrays.asList("Total Tokens", String.format("%,d", smartResponseCost.getTotalTokens())));
+                data.add(Arrays.asList("Input Cost", String.format("$%.6f", smartResponseCost.getInputCost())));
+                data.add(Arrays.asList("Output Cost", String.format("$%.6f", smartResponseCost.getOutputCost())));
+                data.add(Arrays.asList("Total Cost", String.format("$%.6f", smartResponseCost.getTotalCost())));
+                data.add(Arrays.asList("Avg Cost/Evaluation", String.format("$%.6f", smartResponseCost.getAvgCostPerRequest())));
+                data.add(Arrays.asList("Avg Prompt Tokens", String.format("%.2f", smartResponseCost.getAvgPromptTokens())));
+                data.add(Arrays.asList("Avg Completion Tokens", String.format("%.2f", smartResponseCost.getAvgCompletionTokens())));
+            } else {
+                data.add(Arrays.asList("No data", "N/A"));
+            }
+            data.add(Arrays.asList("")); // Empty row
+            
             // Combined Total Section
             data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
             data.add(Arrays.asList("COMBINED TOTAL AI COST SUMMARY"));
@@ -248,10 +270,12 @@ public class GoogleSheetsResultWriter {
             int intentCount = cost.getIntentCost() != null ? cost.getIntentCost().getCount() : 0;
             int categoriesCount = cost.getCategoriesCost() != null ? cost.getCategoriesCost().getCount() : 0;
             int findProductCount = cost.getFindProductCost() != null ? cost.getFindProductCost().getCount() : 0;
+            int smartResponseCount = cost.getSmartResponseCost() != null ? cost.getSmartResponseCost().getCount() : 0;
             data.add(Arrays.asList("  - getIntentSummary", intentSummaryCount));
             data.add(Arrays.asList("  - getIntent", intentCount));
             data.add(Arrays.asList("  - getCategories", categoriesCount));
             data.add(Arrays.asList("  - findProductFromPrompt", findProductCount));
+            data.add(Arrays.asList("  - smartResponse", smartResponseCount));
             data.add(Arrays.asList(""));
             data.add(Arrays.asList("Total Prompt Tokens", String.format("%,d", cost.getTotalPromptTokens())));
             data.add(Arrays.asList("Total Completion Tokens", String.format("%,d", cost.getTotalCompletionTokens())));
@@ -439,6 +463,7 @@ public class GoogleSheetsResultWriter {
         private ValidationTypeCostSummary intentCost;
         private ValidationTypeCostSummary categoriesCost;
         private ValidationTypeCostSummary findProductCost;
+        private ValidationTypeCostSummary smartResponseCost;
 
         // Getters and setters
         public int getTotalRequests() { return totalRequests; }
@@ -486,6 +511,9 @@ public class GoogleSheetsResultWriter {
         
         public ValidationTypeCostSummary getFindProductCost() { return findProductCost; }
         public void setFindProductCost(ValidationTypeCostSummary findProductCost) { this.findProductCost = findProductCost; }
+        
+        public ValidationTypeCostSummary getSmartResponseCost() { return smartResponseCost; }
+        public void setSmartResponseCost(ValidationTypeCostSummary smartResponseCost) { this.smartResponseCost = smartResponseCost; }
     }
 
     /**

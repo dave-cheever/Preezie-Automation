@@ -1,0 +1,59 @@
+INPUTS:
+
+PromptArguments (contains userPrompt, baseProduct, products):
+{{PromptArguments}}
+
+LLMRequestFormattedPrompt:
+{{LLMRequestFormattedPrompt}}
+
+UserMessage:
+{{UserMessage}}
+
+AssistantResponse (Smart Response Result):
+{{ResponseLLM}}
+
+TASK:
+
+1. Review the LLMRequestFormattedPrompt to understand the expected output format and rules.
+2. Review PromptArguments to understand:
+   - userPrompt: the user's original message/question
+   - baseProduct: the main product being discussed (if any)
+   - products: the available products data in JSON format for recommendations/responses
+3. Analyze the UserMessage to understand what the user is asking about.
+4. Determine whether the smart response in AssistantResponse:
+   - Correctly addresses the user's question or intent
+   - Uses accurate information from the provided products data
+   - Does not fabricate product features, prices, or availability not in the data
+   - Provides helpful and relevant product recommendations or information
+   - Maintains appropriate conversational tone
+5. Judge correctness and helpfulness of the response, with emphasis on data accuracy.
+
+SCORING RULES (0–5):
+- relevance: the response directly addresses what the user is asking about
+- faithfulness: no hallucinated product details, invented features, or fabricated information
+- instructionCompliance: follows the response format and rules defined in the prompt
+- semanticCloseness: the response accurately represents user's intent and provides appropriate product information
+
+PASS CONDITIONS:
+- relevance >= 4
+- faithfulness >= 4
+- instructionCompliance >= 4
+- semanticCloseness >= 4
+
+RETURN ONLY THIS JSON STRUCTURE:
+
+{
+  "pass": true | false,
+  "scores": {
+    "relevance": number,
+    "faithfulness": number,
+    "instructionCompliance": number,
+    "semanticCloseness": number
+  },
+  "responseType": "recommendation | answer | information | error",
+  "productsReferenced": "list of product names/IDs referenced in the response",
+  "issues": [string],
+  "summary": "short explanation of why the smart response is correct or incorrect"
+}
+
+
