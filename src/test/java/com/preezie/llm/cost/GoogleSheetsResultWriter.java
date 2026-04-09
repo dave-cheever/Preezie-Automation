@@ -109,8 +109,9 @@ public class GoogleSheetsResultWriter {
         // Build the data to write
         List<List<Object>> data = new ArrayList<>();
         
-        // Header section
+        // Header section - generate fresh timestamp
         String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+        System.out.println("Writing results with timestamp: " + timestamp);
         data.add(Arrays.asList("TEST EXECUTION REPORT"));
         data.add(Arrays.asList("Generated:", timestamp));
         data.add(Arrays.asList("")); // Empty row
@@ -348,10 +349,12 @@ public class GoogleSheetsResultWriter {
 
     private void clearSheet(String sheetName) throws IOException {
         try {
+            // Clear all values from the sheet (A1:Z1000 to ensure all data is cleared)
             ClearValuesRequest clearRequest = new ClearValuesRequest();
             sheetsService.spreadsheets().values()
-                    .clear(spreadsheetId, sheetName + "!A:Z", clearRequest)
+                    .clear(spreadsheetId, sheetName + "!A1:Z1000", clearRequest)
                     .execute();
+            System.out.println("Cleared existing data from " + sheetName + " sheet");
         } catch (Exception e) {
             // Sheet might not exist or be empty, that's okay
             System.out.println("Note: Could not clear sheet (may be empty): " + e.getMessage());
