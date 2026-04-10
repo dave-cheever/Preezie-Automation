@@ -1,0 +1,57 @@
+INPUTS:
+
+PromptArguments (contains userPrompt, brandOverview, and other context):
+{{PromptArguments}}
+
+LLMRequestFormattedPrompt:
+{{LLMRequestFormattedPrompt}}
+
+UserMessage:
+{{UserMessage}}
+
+AssistantResponse (Sub-Intent Classification Result):
+{{ResponseLLM}}
+
+TASK:
+
+1. Review the LLMRequestFormattedPrompt to understand what sub-intent categories are available.
+2. Review PromptArguments to understand:
+   - userPrompt: the user's original message/question
+   - brandOverview: context about the brand/store
+   - Any other relevant context provided
+3. Analyze the UserMessage to understand what specific type of question the user is asking.
+4. Determine whether the Sub-Intent in AssistantResponse is:
+   - Correctly classified based on the user's specific question type
+   - Appropriate for the context given in PromptArguments
+   - Consistent with the available sub-intent choices
+5. Judge correctness of sub-intent classification, not exact wording.
+
+SCORING RULES (0–5):
+- relevance: the sub-intent correctly identifies the type of question being asked
+- faithfulness: no misclassification or invented sub-intents
+- instructionCompliance: follows the sub-intent categories defined in the prompt
+- semanticCloseness: the classified sub-intent accurately represents user's question type
+
+PASS CONDITIONS:
+- relevance >= 4
+- faithfulness >= 4
+- instructionCompliance >= 4
+- semanticCloseness >= 4
+
+RETURN ONLY THIS JSON STRUCTURE:
+
+{
+  "pass": true | false,
+  "scores": {
+    "relevance": number,
+    "faithfulness": number,
+    "instructionCompliance": number,
+    "semanticCloseness": number
+  },
+  "classifiedSubIntent": "the sub-intent value from AssistantResponse",
+  "expectedSubIntentCategory": "what sub-intent category you believe is correct based on UserMessage",
+  "issues": [string],
+  "summary": "short explanation of why the sub-intent classification is correct or incorrect"
+}
+
+

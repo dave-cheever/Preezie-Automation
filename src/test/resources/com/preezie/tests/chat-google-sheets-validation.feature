@@ -13,6 +13,9 @@ Feature: Chat API - TraceId + CMS validation (Google Sheets Data Driven)
   # NOTE: The 'intent' column is no longer required in test data!
   # getIntent is now validated using AI judge similar to getIntentSummary.
   #
+  # SOFT VALIDATION MODE: AI Judge validations continue even on failure
+  # to collect all validation results for a complete report.
+  #
   # IMPORTANT: The Google Sheet must be published to web:
   #   File > Share > Publish to web > Entire Document > CSV
   # ============================================================================
@@ -64,6 +67,9 @@ Scenario: Run all enabled tests from Google Sheets
 
       var traceId = null;
 
+      // Track validation failures for this test case (soft validation)
+      var testHasFailures = false;
+
       try {
         // 1) Get TraceId from Chat API
         karate.log('Step 1: Getting TraceId from Chat API...');
@@ -75,7 +81,7 @@ Scenario: Run all enabled tests from Google Sheets
         });
 
         if (!chat.traceId) {
-          results.failed++;
+          testHasFailures = true;
           results.errors.push({
             tenant: tenantName,
             tenantId: tenantId,
@@ -85,6 +91,8 @@ Scenario: Run all enabled tests from Google Sheets
             error: 'No traceId returned'
           });
           karate.log('[FAILED] No traceId returned');
+          // Cannot continue without traceId - this is a hard failure
+          results.failed++;
           return;
         }
         traceId = chat.traceId;
@@ -101,7 +109,7 @@ Scenario: Run all enabled tests from Google Sheets
         var traceData = cmsResponse.data;
         karate.log('Trace data retrieved, items:', traceData ? traceData.length : 0);
 
-        // 3) Validate promptGlobalFilter.Safe
+        // 3) Validate promptGlobalFilter.Safe (HARD validation - stops if failed)
         karate.log('Step 3: Validating promptGlobalFilter.Safe...');
         var pgf = karate.call('classpath:com/preezie/services/cms/extract-agent-json-key.feature', {
           data: traceData,
@@ -111,7 +119,7 @@ Scenario: Run all enabled tests from Google Sheets
         karate.log('promptGlobalFilter.Safe - Expected:', expectedSafe, 'Actual:', pgf.value);
 
         if (pgf.value !== expectedSafe) {
-          results.failed++;
+          testHasFailures = true;
           results.errors.push({
             tenant: tenantName,
             tenantId: tenantId,
@@ -122,10 +130,16 @@ Scenario: Run all enabled tests from Google Sheets
             actual: pgf.value
           });
           karate.log('[FAILED] promptGlobalFilter - Expected:', expectedSafe, 'Actual:', pgf.value);
+          // promptGlobalFilter is a hard validation - if Safe doesn't match, stop
+          results.failed++;
           return;
         }
 
-        // 4) Validate getIntentSummary with LLM evaluator
+        // ======================================================================
+        // AI JUDGE SOFT VALIDATIONS - Continue even on failure
+        // ======================================================================
+
+        // 4) Validate getIntentSummary with LLM evaluator (SOFT validation)
         karate.log('Step 4: Validating getIntentSummary with LLM evaluator...');
         var intentSummaryItems = karate.filter(traceData, function(x){ return x.agentName == 'getIntentSummary' });
         karate.log('getIntentSummary items found:', intentSummaryItems.length);
@@ -151,7 +165,7 @@ Scenario: Run all enabled tests from Google Sheets
         var validation = evalResult ? evalResult.validationOut : null;
         var passed = validation && validation.pass === true;
         if (!passed) {
-          results.failed++;
+          testHasFailures = true;
 
           // Build detailed error message for getIntentSummary
           var errorDetails = '';
@@ -181,11 +195,11 @@ Scenario: Run all enabled tests from Google Sheets
             error: errorDetails,
             responseLLM: llmResponseText ? (llmResponseText.length > 300 ? llmResponseText.substring(0, 300) + '...' : llmResponseText) : ''
           });
-          karate.log('[FAILED] getIntentSummary validation:', errorDetails);
-          return;
+          karate.log('[SOFT FAIL] getIntentSummary validation:', errorDetails);
+          // Continue to next validation (soft validation mode)
         }
 
-        // 5) Validate getIntent with AI Judge (no longer uses test data intent column)
+        // 5) Validate getIntent with AI Judge (SOFT validation)
         karate.log('Step 5: Validating getIntent with AI Judge...');
         var getIntentItems = karate.filter(traceData, function(x){ return x.agentName == 'getIntent' });
         karate.log('getIntent items found:', getIntentItems.length);
@@ -216,7 +230,7 @@ Scenario: Run all enabled tests from Google Sheets
           var intentPassed = intentValidation && intentValidation.pass === true;
 
           if (!intentPassed) {
-            results.failed++;
+            testHasFailures = true;
 
             var intentErrorDetails = '';
             if (intentValidation) {
@@ -255,14 +269,14 @@ Scenario: Run all enabled tests from Google Sheets
               error: intentErrorDetails,
               responseLLM: intentLlmResponseText ? (intentLlmResponseText.length > 300 ? intentLlmResponseText.substring(0, 300) + '...' : intentLlmResponseText) : ''
             });
-            karate.log('[FAILED] getIntent validation:', intentErrorDetails);
-            return;
+            karate.log('[SOFT FAIL] getIntent validation:', intentErrorDetails);
+            // Continue to next validation (soft validation mode)
           }
         } else {
           karate.log('Skipping getIntent validation (not present in trace data)');
         }
 
-        // 6) Validate getCategories with AI Judge
+        // 6) Validate getCategories with AI Judge (SOFT validation)
         karate.log('Step 6: Validating getCategories with AI Judge...');
         var getCategoriesItems = karate.filter(traceData, function(x){ return x.agentName == 'getCategories' });
         karate.log('getCategories items found:', getCategoriesItems.length);
@@ -293,7 +307,7 @@ Scenario: Run all enabled tests from Google Sheets
           var categoriesPassed = categoriesValidation && categoriesValidation.pass === true;
 
           if (!categoriesPassed) {
-            results.failed++;
+            testHasFailures = true;
 
             var categoriesErrorDetails = '';
             if (categoriesValidation) {
@@ -332,14 +346,14 @@ Scenario: Run all enabled tests from Google Sheets
               error: categoriesErrorDetails,
               responseLLM: categoriesLlmResponseText ? (categoriesLlmResponseText.length > 300 ? categoriesLlmResponseText.substring(0, 300) + '...' : categoriesLlmResponseText) : ''
             });
-            karate.log('[FAILED] getCategories validation:', categoriesErrorDetails);
-            return;
+            karate.log('[SOFT FAIL] getCategories validation:', categoriesErrorDetails);
+            // Continue to next validation (soft validation mode)
           }
         } else {
           karate.log('Skipping getCategories validation (not present in trace data)');
         }
 
-        // 7) Validate findProductFromPrompt with AI Judge
+        // 7) Validate findProductFromPrompt with AI Judge (SOFT validation)
         karate.log('Step 7: Validating findProductFromPrompt with AI Judge...');
         var findProductItems = karate.filter(traceData, function(x){ return x.agentName == 'findProductFromPrompt' });
         karate.log('findProductFromPrompt items found:', findProductItems.length);
@@ -370,7 +384,7 @@ Scenario: Run all enabled tests from Google Sheets
           var findProductPassed = findProductValidation && findProductValidation.pass === true;
 
           if (!findProductPassed) {
-            results.failed++;
+            testHasFailures = true;
 
             var findProductErrorDetails = '';
             if (findProductValidation) {
@@ -409,14 +423,14 @@ Scenario: Run all enabled tests from Google Sheets
               error: findProductErrorDetails,
               responseLLM: findProductLlmResponseText ? (findProductLlmResponseText.length > 300 ? findProductLlmResponseText.substring(0, 300) + '...' : findProductLlmResponseText) : ''
             });
-            karate.log('[FAILED] findProductFromPrompt validation:', findProductErrorDetails);
-            return;
+            karate.log('[SOFT FAIL] findProductFromPrompt validation:', findProductErrorDetails);
+            // Continue to next validation (soft validation mode)
           }
         } else {
           karate.log('Skipping findProductFromPrompt validation (not present in trace data)');
         }
 
-        // 8) Validate smartResponse with AI Judge
+        // 8) Validate smartResponse with AI Judge (SOFT validation)
         karate.log('Step 8: Validating smartResponse with AI Judge...');
         var smartResponseItems = karate.filter(traceData, function(x){ return x.agentName == 'smartResponse' });
         karate.log('smartResponse items found:', smartResponseItems.length);
@@ -447,7 +461,7 @@ Scenario: Run all enabled tests from Google Sheets
           var smartResponsePassed = smartResponseValidation && smartResponseValidation.pass === true;
 
           if (!smartResponsePassed) {
-            results.failed++;
+            testHasFailures = true;
 
             var smartResponseErrorDetails = '';
             if (smartResponseValidation) {
@@ -486,14 +500,14 @@ Scenario: Run all enabled tests from Google Sheets
               error: smartResponseErrorDetails,
               responseLLM: smartResponseLlmResponseText ? (smartResponseLlmResponseText.length > 300 ? smartResponseLlmResponseText.substring(0, 300) + '...' : smartResponseLlmResponseText) : ''
             });
-            karate.log('[FAILED] smartResponse validation:', smartResponseErrorDetails);
-            return;
+            karate.log('[SOFT FAIL] smartResponse validation:', smartResponseErrorDetails);
+            // Continue to next validation (soft validation mode)
           }
         } else {
           karate.log('Skipping smartResponse validation (not present in trace data)');
         }
 
-        // 9) Validate getUserInformation with AI Judge
+        // 9) Validate getUserInformation with AI Judge (SOFT validation)
         karate.log('Step 9: Validating getUserInformation with AI Judge...');
         var getUserInformationItems = karate.filter(traceData, function(x){ return x.agentName == 'getUserInformation' });
         karate.log('getUserInformation items found:', getUserInformationItems.length);
@@ -524,7 +538,7 @@ Scenario: Run all enabled tests from Google Sheets
           var getUserInformationPassed = getUserInformationValidation && getUserInformationValidation.pass === true;
 
           if (!getUserInformationPassed) {
-            results.failed++;
+            testHasFailures = true;
 
             var getUserInformationErrorDetails = '';
             if (getUserInformationValidation) {
@@ -563,16 +577,101 @@ Scenario: Run all enabled tests from Google Sheets
               error: getUserInformationErrorDetails,
               responseLLM: getUserInformationLlmResponseText ? (getUserInformationLlmResponseText.length > 300 ? getUserInformationLlmResponseText.substring(0, 300) + '...' : getUserInformationLlmResponseText) : ''
             });
-            karate.log('[FAILED] getUserInformation validation:', getUserInformationErrorDetails);
-            return;
+            karate.log('[SOFT FAIL] getUserInformation validation:', getUserInformationErrorDetails);
+            // Continue to next validation (soft validation mode)
           }
         } else {
           karate.log('Skipping getUserInformation validation (not present in trace data)');
         }
 
-        // All validations passed
-        results.passed++;
-        karate.log('[PASSED] All validations passed for:', content);
+        // 10) Validate getSpecificQuestionSubIntent with AI Judge (SOFT validation)
+        karate.log('Step 10: Validating getSpecificQuestionSubIntent with AI Judge...');
+        var getSpecificQuestionSubIntentItems = karate.filter(traceData, function(x){ return x.agentName == 'getSpecificQuestionSubIntent' });
+        karate.log('getSpecificQuestionSubIntent items found:', getSpecificQuestionSubIntentItems.length);
+
+        if (getSpecificQuestionSubIntentItems.length > 0) {
+          var specificQuestionSubIntentLlmResponseText = utils.getFirstLLMResponseText(getSpecificQuestionSubIntentItems);
+          var specificQuestionSubIntentPromptArgumentsObj = utils.getFirstSpecificQuestionSubIntentPromptArguments(getSpecificQuestionSubIntentItems);
+          var specificQuestionSubIntentLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(getSpecificQuestionSubIntentItems);
+
+          // Use the actual UserMessage from getSpecificQuestionSubIntent's prompt arguments
+          var specificQuestionSubIntentUserMessage = utils.getFirstUserPromptOnly(getSpecificQuestionSubIntentItems);
+          karate.log('getSpecificQuestionSubIntent UserMessage from trace:', specificQuestionSubIntentUserMessage ? specificQuestionSubIntentUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('getSpecificQuestionSubIntent LLM Response:', specificQuestionSubIntentLlmResponseText ? specificQuestionSubIntentLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var specificQuestionSubIntentEvalArgs = {
+            PromptArguments: specificQuestionSubIntentPromptArgumentsObj,
+            LLMRequestFormattedPrompt: specificQuestionSubIntentLlmRequestFormatedText,
+            UserMessage: specificQuestionSubIntentUserMessage || content,  // Fallback to content if userPrompt not found
+            ResponseLLM: specificQuestionSubIntentLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var specificQuestionSubIntentEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-specificquestionsubintent-evaluator.feature', specificQuestionSubIntentEvalArgs);
+          karate.log('SpecificQuestionSubIntent Evaluator result - pass:', specificQuestionSubIntentEvalResult && specificQuestionSubIntentEvalResult.specificQuestionSubIntentValidationOut ? specificQuestionSubIntentEvalResult.specificQuestionSubIntentValidationOut.pass : 'undefined');
+
+          var specificQuestionSubIntentValidation = specificQuestionSubIntentEvalResult ? specificQuestionSubIntentEvalResult.specificQuestionSubIntentValidationOut : null;
+          var specificQuestionSubIntentPassed = specificQuestionSubIntentValidation && specificQuestionSubIntentValidation.pass === true;
+
+          if (!specificQuestionSubIntentPassed) {
+            testHasFailures = true;
+
+            var specificQuestionSubIntentErrorDetails = '';
+            if (specificQuestionSubIntentValidation) {
+              if (specificQuestionSubIntentValidation.scores) {
+                specificQuestionSubIntentErrorDetails += 'Scores: relevance=' + (specificQuestionSubIntentValidation.scores.relevance || 'N/A') +
+                  ', faithfulness=' + (specificQuestionSubIntentValidation.scores.faithfulness || 'N/A') +
+                  ', instructionCompliance=' + (specificQuestionSubIntentValidation.scores.instructionCompliance || 'N/A') +
+                  ', semanticCloseness=' + (specificQuestionSubIntentValidation.scores.semanticCloseness || 'N/A') + '. ';
+              }
+              // Include classified sub-intent info from AI
+              var parsedSpecificQuestionSubIntentContent = specificQuestionSubIntentEvalResult.specificQuestionSubIntentEvaluatorResultOut ? specificQuestionSubIntentEvalResult.specificQuestionSubIntentEvaluatorResultOut.parsedContent : null;
+              if (parsedSpecificQuestionSubIntentContent) {
+                if (parsedSpecificQuestionSubIntentContent.classifiedSubIntent) {
+                  specificQuestionSubIntentErrorDetails += 'Classified SubIntent: ' + parsedSpecificQuestionSubIntentContent.classifiedSubIntent + '. ';
+                }
+                if (parsedSpecificQuestionSubIntentContent.expectedSubIntentCategory) {
+                  specificQuestionSubIntentErrorDetails += 'Expected SubIntent Category: ' + parsedSpecificQuestionSubIntentContent.expectedSubIntentCategory + '. ';
+                }
+              }
+              if (specificQuestionSubIntentValidation.issues && specificQuestionSubIntentValidation.issues.length > 0) {
+                specificQuestionSubIntentErrorDetails += 'Issues: ' + specificQuestionSubIntentValidation.issues.join('; ') + '. ';
+              }
+              if (specificQuestionSubIntentValidation.summary) {
+                specificQuestionSubIntentErrorDetails += 'Summary: ' + specificQuestionSubIntentValidation.summary;
+              }
+            } else {
+              specificQuestionSubIntentErrorDetails = 'SpecificQuestionSubIntent LLM evaluation failed or returned no validation';
+            }
+
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'getSpecificQuestionSubIntent',
+              error: specificQuestionSubIntentErrorDetails,
+              responseLLM: specificQuestionSubIntentLlmResponseText ? (specificQuestionSubIntentLlmResponseText.length > 300 ? specificQuestionSubIntentLlmResponseText.substring(0, 300) + '...' : specificQuestionSubIntentLlmResponseText) : ''
+            });
+            karate.log('[SOFT FAIL] getSpecificQuestionSubIntent validation:', specificQuestionSubIntentErrorDetails);
+            // Continue (soft validation mode) - this is the last validation anyway
+          }
+        } else {
+          karate.log('Skipping getSpecificQuestionSubIntent validation (not present in trace data)');
+        }
+
+        // ======================================================================
+        // END OF VALIDATIONS - Determine final pass/fail status
+        // ======================================================================
+
+        if (testHasFailures) {
+          results.failed++;
+          karate.log('[FAILED] Test had one or more validation failures for:', content);
+        } else {
+          results.passed++;
+          karate.log('[PASSED] All validations passed for:', content);
+        }
 
       } catch (e) {
         results.failed++;
@@ -599,7 +698,7 @@ Scenario: Run all enabled tests from Google Sheets
   * karate.log('Total Tests:', allTestData.length)
   * karate.log('Passed:', results.passed)
   * karate.log('Failed:', results.failed)
-  * karate.log('Pass Rate:', Math.round((results.passed / allTestData.length) * 100) + '%')
+  * karate.log('Pass Rate:', Math.round((results.passed / allTestData.length) + '%'))
   * karate.log('============================================')
 
   # Print failed tests details
