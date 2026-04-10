@@ -377,6 +377,23 @@ public class GoogleSheetsTestRunner {
                     sheetsCostSummary.setGetUserInformationCost(getUserInformationCost);
                 }
                 
+                // Add getSpecificQuestionSubIntent breakdown
+                CostCalculator.ValidationTypeSummary specificQuestionSubIntentData = costSummary.getGetSpecificQuestionSubIntentSummary();
+                if (specificQuestionSubIntentData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary specificQuestionSubIntentCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    specificQuestionSubIntentCost.setCount(specificQuestionSubIntentData.getCount());
+                    specificQuestionSubIntentCost.setPromptTokens(specificQuestionSubIntentData.getPromptTokens());
+                    specificQuestionSubIntentCost.setCompletionTokens(specificQuestionSubIntentData.getCompletionTokens());
+                    specificQuestionSubIntentCost.setTotalTokens(specificQuestionSubIntentData.getTotalTokens());
+                    specificQuestionSubIntentCost.setInputCost(specificQuestionSubIntentData.getInputCost().doubleValue());
+                    specificQuestionSubIntentCost.setOutputCost(specificQuestionSubIntentData.getOutputCost().doubleValue());
+                    specificQuestionSubIntentCost.setTotalCost(specificQuestionSubIntentData.getTotalCost().doubleValue());
+                    specificQuestionSubIntentCost.setAvgCostPerRequest(specificQuestionSubIntentData.getAvgCostPerRequest().doubleValue());
+                    specificQuestionSubIntentCost.setAvgPromptTokens(specificQuestionSubIntentData.getAvgPromptTokens());
+                    specificQuestionSubIntentCost.setAvgCompletionTokens(specificQuestionSubIntentData.getAvgCompletionTokens());
+                    sheetsCostSummary.setSpecificQuestionSubIntentCost(specificQuestionSubIntentCost);
+                }
+                
                 // Add detailed usage data
                 List<UsageData> usageDataList = readUsageData(usageCsvPath);
                 for (UsageData usage : usageDataList) {
