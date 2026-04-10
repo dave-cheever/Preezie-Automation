@@ -394,6 +394,40 @@ public class GoogleSheetsTestRunner {
                     sheetsCostSummary.setSpecificQuestionSubIntentCost(specificQuestionSubIntentCost);
                 }
                 
+                // Add getMultiProductQuestionSubIntent breakdown
+                CostCalculator.ValidationTypeSummary multiProductQuestionSubIntentData = costSummary.getGetMultiProductQuestionSubIntentSummary();
+                if (multiProductQuestionSubIntentData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary multiProductQuestionSubIntentCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    multiProductQuestionSubIntentCost.setCount(multiProductQuestionSubIntentData.getCount());
+                    multiProductQuestionSubIntentCost.setPromptTokens(multiProductQuestionSubIntentData.getPromptTokens());
+                    multiProductQuestionSubIntentCost.setCompletionTokens(multiProductQuestionSubIntentData.getCompletionTokens());
+                    multiProductQuestionSubIntentCost.setTotalTokens(multiProductQuestionSubIntentData.getTotalTokens());
+                    multiProductQuestionSubIntentCost.setInputCost(multiProductQuestionSubIntentData.getInputCost().doubleValue());
+                    multiProductQuestionSubIntentCost.setOutputCost(multiProductQuestionSubIntentData.getOutputCost().doubleValue());
+                    multiProductQuestionSubIntentCost.setTotalCost(multiProductQuestionSubIntentData.getTotalCost().doubleValue());
+                    multiProductQuestionSubIntentCost.setAvgCostPerRequest(multiProductQuestionSubIntentData.getAvgCostPerRequest().doubleValue());
+                    multiProductQuestionSubIntentCost.setAvgPromptTokens(multiProductQuestionSubIntentData.getAvgPromptTokens());
+                    multiProductQuestionSubIntentCost.setAvgCompletionTokens(multiProductQuestionSubIntentData.getAvgCompletionTokens());
+                    sheetsCostSummary.setMultiProductQuestionSubIntentCost(multiProductQuestionSubIntentCost);
+                }
+                
+                // Add searchingByTitle breakdown
+                CostCalculator.ValidationTypeSummary searchingByTitleData = costSummary.getGetSearchingByTitleSummary();
+                if (searchingByTitleData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary searchingByTitleCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    searchingByTitleCost.setCount(searchingByTitleData.getCount());
+                    searchingByTitleCost.setPromptTokens(searchingByTitleData.getPromptTokens());
+                    searchingByTitleCost.setCompletionTokens(searchingByTitleData.getCompletionTokens());
+                    searchingByTitleCost.setTotalTokens(searchingByTitleData.getTotalTokens());
+                    searchingByTitleCost.setInputCost(searchingByTitleData.getInputCost().doubleValue());
+                    searchingByTitleCost.setOutputCost(searchingByTitleData.getOutputCost().doubleValue());
+                    searchingByTitleCost.setTotalCost(searchingByTitleData.getTotalCost().doubleValue());
+                    searchingByTitleCost.setAvgCostPerRequest(searchingByTitleData.getAvgCostPerRequest().doubleValue());
+                    searchingByTitleCost.setAvgPromptTokens(searchingByTitleData.getAvgPromptTokens());
+                    searchingByTitleCost.setAvgCompletionTokens(searchingByTitleData.getAvgCompletionTokens());
+                    sheetsCostSummary.setSearchingByTitleCost(searchingByTitleCost);
+                }
+                
                 // Add detailed usage data
                 List<UsageData> usageDataList = readUsageData(usageCsvPath);
                 for (UsageData usage : usageDataList) {

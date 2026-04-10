@@ -14,24 +14,29 @@ AssistantResponse (Product Search Query Result):
 
 TASK:
 
-1. Review the LLMRequestFormattedPrompt to understand the expected output format and rules.
-2. Review PromptArguments to understand:
-   - userPrompt: the user's original message/search request
-   - genders: available gender options for filtering
-   - dynamicVariantFields: available product attributes/variants for filtering
-3. Analyze the UserMessage to understand what product(s) the user is looking for.
-4. Determine whether the search query in AssistantResponse:
-   - Correctly extracts search terms from the user's message
-   - Applies appropriate filters based on available genders and dynamicVariantFields
-   - Does not include invalid or hallucinated filter values
-   - Follows the expected output format
-5. Judge correctness of the search query, not exact wording or format.
+IMPORTANT: You are validating ONLY whether the LLM's response is correct given the instructions.
+DO NOT judge or evaluate the user's message itself - it can be anything.
+Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
+
+1. Review the LLMRequestFormattedPrompt to understand:
+   - The expected output format for search queries
+   - The rules for extracting search terms and filters
+2. Review PromptArguments to know the valid options:
+   - genders: the available gender filter options
+   - dynamicVariantFields: the available product attribute filters
+3. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
+   - Did the LLM correctly apply the extraction rules from the prompt?
+   - Are returned filters using only valid values from genders/dynamicVariantFields?
+4. Validate that the AssistantResponse:
+   - Follows the output format specified in the prompt
+   - Uses only valid filter values from the available options
+   - Correctly applies the extraction logic per the prompt
 
 SCORING RULES (0–5):
-- relevance: the search query correctly addresses what the user is looking for
-- faithfulness: no hallucinated filters, invented attributes, or invalid values
-- instructionCompliance: follows the query format and rules defined in the prompt
-- semanticCloseness: the search query accurately represents user's product search intent
+- relevance: the response correctly addresses the extraction task as defined in the prompt
+- faithfulness: no hallucinated filters or values not in the available options
+- instructionCompliance: follows the exact rules and format defined in LLMRequestFormattedPrompt
+- semanticCloseness: the extraction matches what the prompt instructions dictate
 
 PASS CONDITIONS:
 - relevance >= 4
@@ -50,8 +55,8 @@ RETURN ONLY THIS JSON STRUCTURE:
     "semanticCloseness": number
   },
   "extractedQuery": "summary of search query/filters from AssistantResponse",
-  "expectedQuery": "what search query you believe is appropriate based on UserMessage",
+  "expectedQuery": "what the prompt rules dictate should be extracted",
   "issues": [string],
-  "summary": "short explanation of why the search query is correct or incorrect"
+  "summary": "short explanation of whether the LLM correctly followed its extraction instructions"
 }
 

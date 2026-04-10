@@ -14,24 +14,27 @@ AssistantResponse (User Information Extraction Result):
 
 TASK:
 
-1. Review the LLMRequestFormattedPrompt to understand the expected output format and rules.
-2. Review PromptArguments to understand:
-   - userPrompt: the user's original message/conversation context
-   - brandOverview: the brand context for understanding user needs
-3. Analyze the UserMessage to understand what user information should be extracted.
-4. Determine whether the user information in AssistantResponse:
-   - Correctly extracts user details from the conversation
-   - Identifies relevant user preferences, needs, or characteristics
-   - Does not fabricate information not present in the conversation
-   - Follows the expected output format
-   - Is relevant to the brand context
-5. Judge correctness of the extraction, not exact wording.
+IMPORTANT: You are validating ONLY whether the LLM's response is correct given the instructions.
+DO NOT judge or evaluate the user's message itself - it can be anything.
+Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
+
+1. Review the LLMRequestFormattedPrompt to understand:
+   - The expected output format for user information extraction
+   - The rules for extracting user details
+2. Review PromptArguments for context about what data is available.
+3. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
+   - Did the LLM correctly apply the extraction rules from the prompt?
+   - Is the extracted information grounded in the actual input?
+4. Validate that the AssistantResponse:
+   - Follows the output format specified in the prompt
+   - Extracts ONLY information actually present in the input (no fabrications)
+   - Follows the extraction guidelines per the prompt
 
 SCORING RULES (0–5):
-- relevance: the extracted information is relevant to the user's needs and brand context
-- faithfulness: no hallucinated details, invented preferences, or fabricated user information
-- instructionCompliance: follows the extraction format and rules defined in the prompt
-- semanticCloseness: the extraction accurately captures user's actual characteristics and needs
+- relevance: the response follows the prompt's extraction guidelines
+- faithfulness: no fabricated user info - all extracted info is grounded in actual input
+- instructionCompliance: follows the exact rules and format defined in LLMRequestFormattedPrompt
+- semanticCloseness: the extraction matches what the prompt instructions dictate
 
 PASS CONDITIONS:
 - relevance >= 4
@@ -50,9 +53,9 @@ RETURN ONLY THIS JSON STRUCTURE:
     "semanticCloseness": number
   },
   "extractedInfo": "summary of user information extracted from AssistantResponse",
-  "expectedInfo": "what user information you believe should be extracted based on UserMessage",
+  "expectedInfo": "what information should be extracted based on the prompt rules",
   "issues": [string],
-  "summary": "short explanation of why the user information extraction is correct or incorrect"
+  "summary": "short explanation of whether the LLM correctly followed its extraction instructions"
 }
 
 

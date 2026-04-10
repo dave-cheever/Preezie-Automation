@@ -1,6 +1,6 @@
 INPUTS:
 
-PromptArguments (contains userPrompt, brandOverview, choices):
+PromptArguments (contains userPrompt, brandOverview, and other context):
 {{PromptArguments}}
 
 LLMRequestFormattedPrompt:
@@ -9,30 +9,31 @@ LLMRequestFormattedPrompt:
 UserMessage:
 {{UserMessage}}
 
-AssistantResponse (Intent Classification Result):
+AssistantResponse (Multi-Product Sub-Intent Classification Result):
 {{ResponseLLM}}
 
 TASK:
 
 IMPORTANT: You are validating ONLY whether the LLM's response is correct given the instructions.
-DO NOT judge or evaluate the user's message itself - it can be anything.
+DO NOT judge or evaluate the user's message itself - it can be anything (single product search, random text, etc.).
 Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
 
 1. Review the LLMRequestFormattedPrompt to understand:
-   - What intent categories/choices are available
+   - What multi-product sub-intent categories are defined/available
    - What the classification rules and criteria are
-2. Review the choices in PromptArguments to know the valid intent options.
-3. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
+   - When to return 'false' or a specific sub-intent
+2. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
    - Did the LLM correctly apply the classification rules from the prompt?
-   - Is the returned intent one of the valid choices?
-4. Validate that the AssistantResponse:
+   - If the user's message doesn't match any defined sub-intent, returning 'false' is CORRECT
+   - The LLM should only return a sub-intent if the message clearly matches the defined categories
+3. Validate that the AssistantResponse:
    - Follows the output format specified in the prompt
-   - Returns a valid intent from the available choices
-   - Correctly applies the classification logic per the prompt
+   - Correctly applies the classification logic
+   - Returns 'false' when appropriate (message doesn't match defined sub-intents)
 
 SCORING RULES (0–5):
 - relevance: the response correctly addresses the classification task as defined in the prompt
-- faithfulness: no hallucinated intents that aren't in the available choices
+- faithfulness: no hallucinated sub-intents that aren't defined in the prompt
 - instructionCompliance: follows the exact rules and format defined in LLMRequestFormattedPrompt
 - semanticCloseness: the classification matches what the prompt instructions dictate
 
@@ -52,9 +53,10 @@ RETURN ONLY THIS JSON STRUCTURE:
     "instructionCompliance": number,
     "semanticCloseness": number
   },
-  "classifiedIntent": "the intent value from AssistantResponse",
-  "expectedIntentCategory": "what intent the prompt rules dictate based on available choices",
+  "classifiedSubIntent": "the sub-intent value from AssistantResponse",
+  "expectedSubIntentCategory": "what sub-intent the prompt rules dictate (or 'false' if no match)",
   "issues": [string],
   "summary": "short explanation of whether the LLM correctly followed its classification instructions"
 }
+
 
