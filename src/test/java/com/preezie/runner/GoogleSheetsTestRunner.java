@@ -428,6 +428,23 @@ public class GoogleSheetsTestRunner {
                     sheetsCostSummary.setSearchingByTitleCost(searchingByTitleCost);
                 }
                 
+                // Add specificProductQuestion breakdown
+                CostCalculator.ValidationTypeSummary specificProductQuestionData = costSummary.getGetSpecificProductQuestionSummary();
+                if (specificProductQuestionData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary specificProductQuestionCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    specificProductQuestionCost.setCount(specificProductQuestionData.getCount());
+                    specificProductQuestionCost.setPromptTokens(specificProductQuestionData.getPromptTokens());
+                    specificProductQuestionCost.setCompletionTokens(specificProductQuestionData.getCompletionTokens());
+                    specificProductQuestionCost.setTotalTokens(specificProductQuestionData.getTotalTokens());
+                    specificProductQuestionCost.setInputCost(specificProductQuestionData.getInputCost().doubleValue());
+                    specificProductQuestionCost.setOutputCost(specificProductQuestionData.getOutputCost().doubleValue());
+                    specificProductQuestionCost.setTotalCost(specificProductQuestionData.getTotalCost().doubleValue());
+                    specificProductQuestionCost.setAvgCostPerRequest(specificProductQuestionData.getAvgCostPerRequest().doubleValue());
+                    specificProductQuestionCost.setAvgPromptTokens(specificProductQuestionData.getAvgPromptTokens());
+                    specificProductQuestionCost.setAvgCompletionTokens(specificProductQuestionData.getAvgCompletionTokens());
+                    sheetsCostSummary.setSpecificProductQuestionCost(specificProductQuestionCost);
+                }
+                
                 // Add detailed usage data
                 List<UsageData> usageDataList = readUsageData(usageCsvPath);
                 for (UsageData usage : usageDataList) {

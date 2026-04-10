@@ -1,0 +1,59 @@
+INPUTS:
+
+PromptArguments (contains context, product information, and other parameters):
+{{PromptArguments}}
+
+LLMRequestFormattedPrompt (the instructions given to the LLM):
+{{LLMRequestFormattedPrompt}}
+
+UserMessage (the user's question about a specific product):
+{{UserMessage}}
+
+AssistantResponse (the LLM's response to the user's question):
+{{ResponseLLM}}
+
+TASK:
+
+IMPORTANT: You are validating ONLY whether the LLM's response is correct given the instructions.
+DO NOT judge or evaluate the user's message itself - it can be anything (product questions, random text, etc.).
+Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
+
+1. Review the LLMRequestFormattedPrompt to understand:
+   - What response format is expected
+   - What rules govern how to answer product questions
+   - What context or information should be used in responses
+   - How edge cases should be handled
+2. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
+   - Did the LLM correctly apply the response rules from the prompt?
+   - Is the response format correct as specified?
+   - Does the response properly use the available context/product information?
+3. Evaluate if the response is:
+   - Faithful to the instructions in the prompt
+   - Properly formatted according to requirements
+   - Appropriate given the context provided
+
+Score each aspect 0-10:
+- relevance: How well does the response address what was asked given the instructions?
+- faithfulness: Does the response follow the prompt's rules and use provided information correctly?
+- instructionCompliance: Did the LLM follow ALL specified instructions in the prompt?
+- semanticCloseness: How well does the response semantically match expected behavior?
+
+Pass threshold: All scores >= 7 AND instructionCompliance >= 8
+
+Return your evaluation as JSON:
+{
+  "pass": true | false,
+  "scores": {
+    "relevance": number,
+    "faithfulness": number,
+    "instructionCompliance": number,
+    "semanticCloseness": number
+  },
+  "responseAnalysis": "brief analysis of what the LLM response contains",
+  "expectedBehavior": "what the prompt rules dictate the response should be",
+  "issues": [string],
+  "summary": "short explanation of whether the LLM correctly followed its response instructions"
+}
+
+
+

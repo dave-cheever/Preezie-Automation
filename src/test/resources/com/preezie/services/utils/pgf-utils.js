@@ -296,5 +296,52 @@
           if (obj) return obj;
         }
         return null;
+      },
+
+  // ========== specificProductQuestion Prompt Arguments ==========
+  // Fields: userPrompt, brandOverview, product (may vary based on actual implementation)
+  getSpecificProductQuestionPromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        userPrompt: args.userPrompt || '',
+        brandOverview: args.brandOverview || '',
+        product: args.product || '',
+        choices: args.choices || ''
+      };
+    },
+
+    getFirstSpecificProductQuestionPromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getSpecificProductQuestionPromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
+      },
+
+  // ========== searchingByTitle Prompt Arguments ==========
+  // Fields: userPrompt, brandOverview (may vary based on actual implementation)
+  getSearchingByTitlePromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        userPrompt: args.userPrompt || '',
+        brandOverview: args.brandOverview || '',
+        choices: args.choices || ''
+      };
+    },
+
+    getFirstSearchingByTitlePromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getSearchingByTitlePromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
       }
 })
