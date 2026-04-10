@@ -738,6 +738,157 @@ Scenario: Run all enabled tests from Google Sheets
           karate.log('Skipping getMultiProductQuestionSubIntent validation (not present in trace data)');
         }
 
+        // 12) Validate specificProductQuestion with AI Judge (SOFT validation)
+        karate.log('Step 12: Validating specificProductQuestion with AI Judge...');
+        var getSpecificProductQuestionItems = karate.filter(traceData, function(x){ return x.agentName == 'specificProductQuestion' });
+        karate.log('specificProductQuestion items found:', getSpecificProductQuestionItems.length);
+
+        if (getSpecificProductQuestionItems.length > 0) {
+          var specificProductQuestionLlmResponseText = utils.getFirstLLMResponseText(getSpecificProductQuestionItems);
+          var specificProductQuestionPromptArgumentsObj = utils.getFirstSpecificProductQuestionPromptArguments(getSpecificProductQuestionItems);
+          var specificProductQuestionLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(getSpecificProductQuestionItems);
+
+          // Use the actual UserMessage from specificProductQuestion's prompt arguments
+          var specificProductQuestionUserMessage = utils.getFirstUserPromptOnly(getSpecificProductQuestionItems);
+          karate.log('specificProductQuestion UserMessage from trace:', specificProductQuestionUserMessage ? specificProductQuestionUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('specificProductQuestion LLM Response:', specificProductQuestionLlmResponseText ? specificProductQuestionLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var specificProductQuestionEvalArgs = {
+            PromptArguments: specificProductQuestionPromptArgumentsObj,
+            LLMRequestFormattedPrompt: specificProductQuestionLlmRequestFormatedText,
+            UserMessage: specificProductQuestionUserMessage || content,  // Fallback to content if userPrompt not found
+            ResponseLLM: specificProductQuestionLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var specificProductQuestionEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-specificproductquestion-evaluator.feature', specificProductQuestionEvalArgs);
+          karate.log('SpecificProductQuestion Evaluator result - pass:', specificProductQuestionEvalResult && specificProductQuestionEvalResult.specificProductQuestionValidationOut ? specificProductQuestionEvalResult.specificProductQuestionValidationOut.pass : 'undefined');
+
+          var specificProductQuestionValidation = specificProductQuestionEvalResult ? specificProductQuestionEvalResult.specificProductQuestionValidationOut : null;
+          var specificProductQuestionPassed = specificProductQuestionValidation && specificProductQuestionValidation.pass === true;
+
+          if (!specificProductQuestionPassed) {
+            testHasFailures = true;
+
+            var specificProductQuestionErrorDetails = '';
+            if (specificProductQuestionValidation) {
+              if (specificProductQuestionValidation.scores) {
+                specificProductQuestionErrorDetails += 'Scores: relevance=' + (specificProductQuestionValidation.scores.relevance || 'N/A') +
+                  ', faithfulness=' + (specificProductQuestionValidation.scores.faithfulness || 'N/A') +
+                  ', instructionCompliance=' + (specificProductQuestionValidation.scores.instructionCompliance || 'N/A') +
+                  ', semanticCloseness=' + (specificProductQuestionValidation.scores.semanticCloseness || 'N/A') + '. ';
+              }
+              // Include response analysis from AI
+              var parsedSpecificProductQuestionContent = specificProductQuestionEvalResult.specificProductQuestionEvaluatorResultOut ? specificProductQuestionEvalResult.specificProductQuestionEvaluatorResultOut.parsedContent : null;
+              if (parsedSpecificProductQuestionContent) {
+                if (parsedSpecificProductQuestionContent.responseAnalysis) {
+                  specificProductQuestionErrorDetails += 'Response Analysis: ' + parsedSpecificProductQuestionContent.responseAnalysis + '. ';
+                }
+                if (parsedSpecificProductQuestionContent.expectedBehavior) {
+                  specificProductQuestionErrorDetails += 'Expected Behavior: ' + parsedSpecificProductQuestionContent.expectedBehavior + '. ';
+                }
+              }
+              if (specificProductQuestionValidation.issues && specificProductQuestionValidation.issues.length > 0) {
+                specificProductQuestionErrorDetails += 'Issues: ' + specificProductQuestionValidation.issues.join('; ') + '. ';
+              }
+              if (specificProductQuestionValidation.summary) {
+                specificProductQuestionErrorDetails += 'Summary: ' + specificProductQuestionValidation.summary;
+              }
+            } else {
+              specificProductQuestionErrorDetails = 'SpecificProductQuestion LLM evaluation failed or returned no validation';
+            }
+
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'specificProductQuestion',
+              error: specificProductQuestionErrorDetails,
+              responseLLM: specificProductQuestionLlmResponseText ? (specificProductQuestionLlmResponseText.length > 300 ? specificProductQuestionLlmResponseText.substring(0, 300) + '...' : specificProductQuestionLlmResponseText) : ''
+            });
+            karate.log('[SOFT FAIL] specificProductQuestion validation:', specificProductQuestionErrorDetails);
+            // Continue (soft validation mode)
+          }
+        } else {
+          karate.log('Skipping specificProductQuestion validation (not present in trace data)');
+        }
+
+        // 13) Validate searchingByTitle with AI Judge (SOFT validation)
+        karate.log('Step 13: Validating searchingByTitle with AI Judge...');
+        var getSearchingByTitleItems = karate.filter(traceData, function(x){ return x.agentName == 'searchingByTitle' });
+        karate.log('searchingByTitle items found:', getSearchingByTitleItems.length);
+
+        if (getSearchingByTitleItems.length > 0) {
+          var searchingByTitleLlmResponseText = utils.getFirstLLMResponseText(getSearchingByTitleItems);
+          var searchingByTitlePromptArgumentsObj = utils.getFirstSearchingByTitlePromptArguments(getSearchingByTitleItems);
+          var searchingByTitleLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(getSearchingByTitleItems);
+
+          // Use the actual UserMessage from searchingByTitle's prompt arguments
+          var searchingByTitleUserMessage = utils.getFirstUserPromptOnly(getSearchingByTitleItems);
+          karate.log('searchingByTitle UserMessage from trace:', searchingByTitleUserMessage ? searchingByTitleUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('searchingByTitle LLM Response:', searchingByTitleLlmResponseText ? searchingByTitleLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var searchingByTitleEvalArgs = {
+            PromptArguments: searchingByTitlePromptArgumentsObj,
+            LLMRequestFormattedPrompt: searchingByTitleLlmRequestFormatedText,
+            UserMessage: searchingByTitleUserMessage || content,  // Fallback to content if userPrompt not found
+            ResponseLLM: searchingByTitleLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var searchingByTitleEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-searchingbytitle-evaluator.feature', searchingByTitleEvalArgs);
+          karate.log('SearchingByTitle Evaluator result - pass:', searchingByTitleEvalResult && searchingByTitleEvalResult.searchingByTitleValidationOut ? searchingByTitleEvalResult.searchingByTitleValidationOut.pass : 'undefined');
+
+          var searchingByTitleValidation = searchingByTitleEvalResult ? searchingByTitleEvalResult.searchingByTitleValidationOut : null;
+          var searchingByTitlePassed = searchingByTitleValidation && searchingByTitleValidation.pass === true;
+
+          if (!searchingByTitlePassed) {
+            testHasFailures = true;
+
+            var searchingByTitleErrorDetails = '';
+            if (searchingByTitleValidation) {
+              if (searchingByTitleValidation.scores) {
+                searchingByTitleErrorDetails += 'Scores: relevance=' + (searchingByTitleValidation.scores.relevance || 'N/A') +
+                  ', faithfulness=' + (searchingByTitleValidation.scores.faithfulness || 'N/A') +
+                  ', instructionCompliance=' + (searchingByTitleValidation.scores.instructionCompliance || 'N/A') +
+                  ', semanticCloseness=' + (searchingByTitleValidation.scores.semanticCloseness || 'N/A') + '. ';
+              }
+              // Include extracted terms from AI
+              var parsedSearchingByTitleContent = searchingByTitleEvalResult.searchingByTitleEvaluatorResultOut ? searchingByTitleEvalResult.searchingByTitleEvaluatorResultOut.parsedContent : null;
+              if (parsedSearchingByTitleContent) {
+                if (parsedSearchingByTitleContent.extractedTerms) {
+                  searchingByTitleErrorDetails += 'Extracted Terms: ' + parsedSearchingByTitleContent.extractedTerms + '. ';
+                }
+              }
+              if (searchingByTitleValidation.issues && searchingByTitleValidation.issues.length > 0) {
+                searchingByTitleErrorDetails += 'Issues: ' + searchingByTitleValidation.issues.join('; ') + '. ';
+              }
+              if (searchingByTitleValidation.summary) {
+                searchingByTitleErrorDetails += 'Summary: ' + searchingByTitleValidation.summary;
+              }
+            } else {
+              searchingByTitleErrorDetails = 'SearchingByTitle LLM evaluation failed or returned no validation';
+            }
+
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'searchingByTitle',
+              error: searchingByTitleErrorDetails,
+              responseLLM: searchingByTitleLlmResponseText ? (searchingByTitleLlmResponseText.length > 300 ? searchingByTitleLlmResponseText.substring(0, 300) + '...' : searchingByTitleLlmResponseText) : ''
+            });
+            karate.log('[SOFT FAIL] searchingByTitle validation:', searchingByTitleErrorDetails);
+            // Continue (soft validation mode)
+          }
+        } else {
+          karate.log('Skipping searchingByTitle validation (not present in trace data)');
+        }
+
         // ======================================================================
         // END OF VALIDATIONS - Determine final pass/fail status
         // ======================================================================
