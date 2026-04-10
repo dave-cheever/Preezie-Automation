@@ -14,23 +14,28 @@ AssistantResponse (Sub-Intent Classification Result):
 
 TASK:
 
-1. Review the LLMRequestFormattedPrompt to understand what sub-intent categories are available.
-2. Review PromptArguments to understand:
-   - userPrompt: the user's original message/question
-   - brandOverview: context about the brand/store
-   - Any other relevant context provided
-3. Analyze the UserMessage to understand what specific type of question the user is asking.
-4. Determine whether the Sub-Intent in AssistantResponse is:
-   - Correctly classified based on the user's specific question type
-   - Appropriate for the context given in PromptArguments
-   - Consistent with the available sub-intent choices
-5. Judge correctness of sub-intent classification, not exact wording.
+IMPORTANT: You are validating ONLY whether the LLM's response is correct given the instructions.
+DO NOT judge or evaluate the user's message itself - it can be anything (product search, random text, etc.).
+Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
+
+1. Review the LLMRequestFormattedPrompt to understand:
+   - What sub-intent categories are defined/available
+   - What the classification rules and criteria are
+   - When to return 'false' or a specific sub-intent
+2. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
+   - Did the LLM correctly apply the classification rules from the prompt?
+   - If the user's message doesn't match any defined sub-intent, returning 'false' is CORRECT
+   - The LLM should only return a sub-intent if the message clearly matches the defined categories
+3. Validate that the AssistantResponse:
+   - Follows the output format specified in the prompt
+   - Correctly applies the classification logic
+   - Returns 'false' when appropriate (message doesn't match defined sub-intents)
 
 SCORING RULES (0–5):
-- relevance: the sub-intent correctly identifies the type of question being asked
-- faithfulness: no misclassification or invented sub-intents
-- instructionCompliance: follows the sub-intent categories defined in the prompt
-- semanticCloseness: the classified sub-intent accurately represents user's question type
+- relevance: the response correctly addresses the classification task as defined in the prompt
+- faithfulness: no hallucinated sub-intents that aren't defined in the prompt
+- instructionCompliance: follows the exact rules and format defined in LLMRequestFormattedPrompt
+- semanticCloseness: the classification matches what the prompt instructions dictate
 
 PASS CONDITIONS:
 - relevance >= 4
@@ -49,9 +54,9 @@ RETURN ONLY THIS JSON STRUCTURE:
     "semanticCloseness": number
   },
   "classifiedSubIntent": "the sub-intent value from AssistantResponse",
-  "expectedSubIntentCategory": "what sub-intent category you believe is correct based on UserMessage",
+  "expectedSubIntentCategory": "what sub-intent the prompt rules dictate (or 'false' if no match)",
   "issues": [string],
-  "summary": "short explanation of why the sub-intent classification is correct or incorrect"
+  "summary": "short explanation of whether the LLM correctly followed its classification instructions"
 }
 
 

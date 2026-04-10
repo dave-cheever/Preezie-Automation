@@ -273,5 +273,28 @@
           if (obj) return obj;
         }
         return null;
+      },
+
+  // ========== getMultiProductQuestionSubIntent Prompt Arguments ==========
+  // Fields: userPrompt, brandOverview (may vary based on actual implementation)
+  getMultiProductQuestionSubIntentPromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        userPrompt: args.userPrompt || '',
+        brandOverview: args.brandOverview || '',
+        choices: args.choices || ''
+      };
+    },
+
+    getFirstMultiProductQuestionSubIntentPromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getMultiProductQuestionSubIntentPromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
       }
 })

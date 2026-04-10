@@ -14,24 +14,27 @@ AssistantResponse (Category Classification Result):
 
 TASK:
 
-1. Review the LLMRequestFormattedPrompt to understand what categories are available and the rules for classification.
-2. Review PromptArguments to understand:
-   - userPrompt: the user's original message
-   - brandOverview: context about the brand/store
-   - lastDiscussedCategories: categories from previous conversation
-3. Analyze the UserMessage to understand what the user is looking for.
-4. Determine whether the categories in AssistantResponse are:
-   - Relevant to the user's request
-   - Appropriate for the context given in PromptArguments
-   - Consistent with the available category taxonomy
-   - Correctly prioritized (if ordering matters)
-5. Judge correctness of classification, not exact wording or format.
+IMPORTANT: You are validating ONLY whether the LLM's response is correct given the instructions.
+DO NOT judge or evaluate the user's message itself - it can be anything.
+Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
+
+1. Review the LLMRequestFormattedPrompt to understand:
+   - What categories/taxonomy are available
+   - What the classification rules and criteria are
+   - The expected output format
+2. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
+   - Did the LLM correctly apply the classification rules from the prompt?
+   - Are the returned categories valid per the available taxonomy?
+3. Validate that the AssistantResponse:
+   - Follows the output format specified in the prompt
+   - Returns valid categories from the available taxonomy
+   - Correctly applies the classification logic per the prompt
 
 SCORING RULES (0–5):
-- relevance: the categories correctly address what the user is looking for
-- faithfulness: no misclassification, invented categories, or hallucinations
-- instructionCompliance: follows the category rules and schema defined in the prompt
-- semanticCloseness: the classified categories accurately represent user's shopping intent
+- relevance: the response correctly addresses the classification task as defined in the prompt
+- faithfulness: no hallucinated categories that aren't in the available taxonomy
+- instructionCompliance: follows the exact rules and format defined in LLMRequestFormattedPrompt
+- semanticCloseness: the classification matches what the prompt instructions dictate
 
 PASS CONDITIONS:
 - relevance >= 4
@@ -50,8 +53,8 @@ RETURN ONLY THIS JSON STRUCTURE:
     "semanticCloseness": number
   },
   "classifiedCategories": "list or summary of categories from AssistantResponse",
-  "expectedCategories": "what categories you believe are appropriate based on UserMessage",
+  "expectedCategories": "what categories the prompt rules dictate should be returned",
   "issues": [string],
-  "summary": "short explanation of why the classification is correct or incorrect"
+  "summary": "short explanation of whether the LLM correctly followed its classification instructions"
 }
 

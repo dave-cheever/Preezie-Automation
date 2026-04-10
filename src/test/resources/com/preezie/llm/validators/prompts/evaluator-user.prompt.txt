@@ -14,23 +14,30 @@ AssistantResponse (ResponseLLM):
 
 TASK:
 
-1. Review PromptArguments to understand the context:
-   - userPrompt: the user's original message
-   - chatHistory: previous conversation messages
-   - productRecommendationHistory: products that were previously recommended
+IMPORTANT: You are validating ONLY whether the LLM's response is correct given the instructions.
+DO NOT judge or evaluate the user's message itself - it can be anything.
+Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
+
+1. Review the LLMRequestFormattedPrompt to understand:
+   - The expected output format and rules
+   - How the LLM should process the input
+2. Review PromptArguments for context data that GROUNDS the response:
+   - chatHistory: previous conversation context
+   - productRecommendationHistory: products previously recommended
    - lastDiscussedProduct: the most recently discussed product
-2. Infer the intended meaning and constraints implied by PromptArguments and LLMRequestFormattedPrompt.
-3. Determine whether AssistantResponse is:
-   - Semantically aligned with the intended interpretation
-   - Faithful to the given rules and context
-   - Free from hallucinated or invented information
-4. Judge closeness of meaning, not wording.
+3. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
+   - Did the LLM correctly follow the rules from the prompt?
+   - Is the response grounded in the provided context data?
+4. Validate that AssistantResponse:
+   - Follows the output format specified in the prompt
+   - Does not fabricate information not in the provided context
+   - Correctly applies the logic per the prompt instructions
 
 SCORING RULES (0–5):
-- relevance: answers the user’s intent
-- faithfulness: no hallucinations or invented facts
-- instructionCompliance: follows PromptArguments and formatting rules
-- semanticCloseness: meaning matches expected interpretation
+- relevance: the response follows the prompt's processing guidelines
+- faithfulness: no hallucinations - all info is grounded in provided context
+- instructionCompliance: follows the exact rules and format defined in LLMRequestFormattedPrompt
+- semanticCloseness: the response matches what the prompt instructions dictate
 
 PASS CONDITIONS:
 - relevance >= 4
@@ -49,5 +56,5 @@ RETURN ONLY THIS JSON STRUCTURE:
     "semanticCloseness": number
   },
   "issues": [string],
-  "summary": "short explanation"
+  "summary": "short explanation of whether the LLM correctly followed its instructions"
 }

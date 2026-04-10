@@ -9,7 +9,7 @@ public class CostCalculator {
     public CostSummary calculateSummary(List<UsageData> usageDataList) {
         if (usageDataList == null || usageDataList.isEmpty()) {
             return new CostSummary(0, 0, 0, 0, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 
-                    new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary());
+                    new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary());
         }
 
         int totalRequests = usageDataList.size();
@@ -27,6 +27,8 @@ public class CostCalculator {
         ValidationTypeSummary smartResponseSummary = new ValidationTypeSummary();
         ValidationTypeSummary getUserInformationSummary = new ValidationTypeSummary();
         ValidationTypeSummary specificQuestionSubIntentSummary = new ValidationTypeSummary();
+        ValidationTypeSummary multiProductQuestionSubIntentSummary = new ValidationTypeSummary();
+        ValidationTypeSummary searchingByTitleSummary = new ValidationTypeSummary();
 
         for (UsageData data : usageDataList) {
             totalPromptTokens += data.getPromptTokens();
@@ -52,6 +54,10 @@ public class CostCalculator {
                     getUserInformationSummary.addUsage(data);
                 } else if (content.contains("[getSpecificQuestionSubIntent]")) {
                     specificQuestionSubIntentSummary.addUsage(data);
+                } else if (content.contains("[getMultiProductQuestionSubIntent]")) {
+                    multiProductQuestionSubIntentSummary.addUsage(data);
+                } else if (content.contains("[searchingByTitle]")) {
+                    searchingByTitleSummary.addUsage(data);
                 }
             }
         }
@@ -70,7 +76,9 @@ public class CostCalculator {
                 findProductSummary,
                 smartResponseSummary,
                 getUserInformationSummary,
-                specificQuestionSubIntentSummary
+                specificQuestionSubIntentSummary,
+                multiProductQuestionSubIntentSummary,
+                searchingByTitleSummary
         );
     }
 
@@ -124,13 +132,16 @@ public class CostCalculator {
         private final ValidationTypeSummary getSmartResponseSummary;
         private final ValidationTypeSummary getGetUserInformationSummary;
         private final ValidationTypeSummary getSpecificQuestionSubIntentSummary;
+        private final ValidationTypeSummary getMultiProductQuestionSubIntentSummary;
+        private final ValidationTypeSummary getSearchingByTitleSummary;
 
         public CostSummary(int totalRequests, int totalPromptTokens, int totalCompletionTokens,
                            int totalTokens, BigDecimal totalInputCost, BigDecimal totalOutputCost,
                            BigDecimal totalCost, ValidationTypeSummary getIntentSummarySummary,
                            ValidationTypeSummary getIntentSummary, ValidationTypeSummary getCategoriesSummary,
                            ValidationTypeSummary getFindProductSummary, ValidationTypeSummary getSmartResponseSummary,
-                           ValidationTypeSummary getGetUserInformationSummary, ValidationTypeSummary getSpecificQuestionSubIntentSummary) {
+                           ValidationTypeSummary getGetUserInformationSummary, ValidationTypeSummary getSpecificQuestionSubIntentSummary,
+                           ValidationTypeSummary getMultiProductQuestionSubIntentSummary, ValidationTypeSummary getSearchingByTitleSummary) {
             this.totalRequests = totalRequests;
             this.totalPromptTokens = totalPromptTokens;
             this.totalCompletionTokens = totalCompletionTokens;
@@ -145,6 +156,8 @@ public class CostCalculator {
             this.getSmartResponseSummary = getSmartResponseSummary;
             this.getGetUserInformationSummary = getGetUserInformationSummary;
             this.getSpecificQuestionSubIntentSummary = getSpecificQuestionSubIntentSummary;
+            this.getMultiProductQuestionSubIntentSummary = getMultiProductQuestionSubIntentSummary;
+            this.getSearchingByTitleSummary = getSearchingByTitleSummary;
         }
 
         public BigDecimal getAverageCostPerRequest() {
@@ -176,6 +189,8 @@ public class CostCalculator {
         public ValidationTypeSummary getGetSmartResponseSummary() { return getSmartResponseSummary; }
         public ValidationTypeSummary getGetUserInformationSummary() { return getGetUserInformationSummary; }
         public ValidationTypeSummary getGetSpecificQuestionSubIntentSummary() { return getSpecificQuestionSubIntentSummary; }
+        public ValidationTypeSummary getGetMultiProductQuestionSubIntentSummary() { return getMultiProductQuestionSubIntentSummary; }
+        public ValidationTypeSummary getGetSearchingByTitleSummary() { return getSearchingByTitleSummary; }
         
         // Double getters for easier use
         public double getTotalInputCostDouble() { return totalInputCost.doubleValue(); }
@@ -398,6 +413,66 @@ public class CostCalculator {
                     getSpecificQuestionSubIntentSummary.getAvgPromptTokens(),
                     getSpecificQuestionSubIntentSummary.getAvgCompletionTokens()));
 
+            // getMultiProductQuestionSubIntent Section
+            sb.append("""
+                    
+                    ═══════════════════════════════════════════════════════════════
+                                    AI COST SUMMARY - getMultiProductQuestionSubIntent
+                    ═══════════════════════════════════════════════════════════════
+                    """);
+            sb.append(String.format("""
+                    Evaluations:              %d
+                    Prompt Tokens:            %,d
+                    Completion Tokens:        %,d
+                    Total Tokens:             %,d
+                    Input Cost:               $%.6f
+                    Output Cost:              $%.6f
+                    Total Cost:               $%.6f
+                    Avg Cost/Evaluation:      $%.6f
+                    Avg Prompt Tokens:        %.2f
+                    Avg Completion Tokens:    %.2f
+                    """,
+                    getMultiProductQuestionSubIntentSummary.getCount(),
+                    getMultiProductQuestionSubIntentSummary.getPromptTokens(),
+                    getMultiProductQuestionSubIntentSummary.getCompletionTokens(),
+                    getMultiProductQuestionSubIntentSummary.getTotalTokens(),
+                    getMultiProductQuestionSubIntentSummary.getInputCost(),
+                    getMultiProductQuestionSubIntentSummary.getOutputCost(),
+                    getMultiProductQuestionSubIntentSummary.getTotalCost(),
+                    getMultiProductQuestionSubIntentSummary.getAvgCostPerRequest(),
+                    getMultiProductQuestionSubIntentSummary.getAvgPromptTokens(),
+                    getMultiProductQuestionSubIntentSummary.getAvgCompletionTokens()));
+
+            // searchingByTitle Section
+            sb.append("""
+                    
+                    ═══════════════════════════════════════════════════════════════
+                                    AI COST SUMMARY - searchingByTitle
+                    ═══════════════════════════════════════════════════════════════
+                    """);
+            sb.append(String.format("""
+                    Evaluations:              %d
+                    Prompt Tokens:            %,d
+                    Completion Tokens:        %,d
+                    Total Tokens:             %,d
+                    Input Cost:               $%.6f
+                    Output Cost:              $%.6f
+                    Total Cost:               $%.6f
+                    Avg Cost/Evaluation:      $%.6f
+                    Avg Prompt Tokens:        %.2f
+                    Avg Completion Tokens:    %.2f
+                    """,
+                    getSearchingByTitleSummary.getCount(),
+                    getSearchingByTitleSummary.getPromptTokens(),
+                    getSearchingByTitleSummary.getCompletionTokens(),
+                    getSearchingByTitleSummary.getTotalTokens(),
+                    getSearchingByTitleSummary.getInputCost(),
+                    getSearchingByTitleSummary.getOutputCost(),
+                    getSearchingByTitleSummary.getTotalCost(),
+                    getSearchingByTitleSummary.getAvgCostPerRequest(),
+                    getSearchingByTitleSummary.getAvgPromptTokens(),
+                    getSearchingByTitleSummary.getAvgCompletionTokens()));
+
             // Combined Total Section
             sb.append("""
                     
@@ -414,6 +489,8 @@ public class CostCalculator {
                       - smartResponse:        %d
                       - getUserInformation:   %d
                       - getSpecificQuestionSubIntent: %d
+                      - getMultiProductQuestionSubIntent: %d
+                      - searchingByTitle:     %d
                     ───────────────────────────────────────────────────────────────
                     Total Prompt Tokens:      %,d
                     Total Completion Tokens:  %,d
@@ -428,7 +505,7 @@ public class CostCalculator {
                     Avg Completion Tokens:    %.2f
                     ═══════════════════════════════════════════════════════════════
                     """,
-                    totalRequests, getIntentSummarySummary.getCount(), getIntentSummary.getCount(), getCategoriesSummary.getCount(), getFindProductSummary.getCount(), getSmartResponseSummary.getCount(), getGetUserInformationSummary.getCount(), getSpecificQuestionSubIntentSummary.getCount(),
+                    totalRequests, getIntentSummarySummary.getCount(), getIntentSummary.getCount(), getCategoriesSummary.getCount(), getFindProductSummary.getCount(), getSmartResponseSummary.getCount(), getGetUserInformationSummary.getCount(), getSpecificQuestionSubIntentSummary.getCount(), getMultiProductQuestionSubIntentSummary.getCount(), getSearchingByTitleSummary.getCount(),
                     totalPromptTokens, totalCompletionTokens, totalTokens,
                     totalInputCost, totalOutputCost, totalCost,
                     getAverageCostPerRequest(), getAveragePromptTokens(), getAverageCompletionTokens()));

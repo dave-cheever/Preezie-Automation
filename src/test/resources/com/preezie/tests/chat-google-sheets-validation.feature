@@ -661,6 +661,83 @@ Scenario: Run all enabled tests from Google Sheets
           karate.log('Skipping getSpecificQuestionSubIntent validation (not present in trace data)');
         }
 
+        // 11) Validate getMultiProductQuestionSubIntent with AI Judge (SOFT validation)
+        karate.log('Step 11: Validating getMultiProductQuestionSubIntent with AI Judge...');
+        var getMultiProductQuestionSubIntentItems = karate.filter(traceData, function(x){ return x.agentName == 'getMultiProductQuestionSubIntent' });
+        karate.log('getMultiProductQuestionSubIntent items found:', getMultiProductQuestionSubIntentItems.length);
+
+        if (getMultiProductQuestionSubIntentItems.length > 0) {
+          var multiProductQuestionSubIntentLlmResponseText = utils.getFirstLLMResponseText(getMultiProductQuestionSubIntentItems);
+          var multiProductQuestionSubIntentPromptArgumentsObj = utils.getFirstMultiProductQuestionSubIntentPromptArguments(getMultiProductQuestionSubIntentItems);
+          var multiProductQuestionSubIntentLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(getMultiProductQuestionSubIntentItems);
+
+          // Use the actual UserMessage from getMultiProductQuestionSubIntent's prompt arguments
+          var multiProductQuestionSubIntentUserMessage = utils.getFirstUserPromptOnly(getMultiProductQuestionSubIntentItems);
+          karate.log('getMultiProductQuestionSubIntent UserMessage from trace:', multiProductQuestionSubIntentUserMessage ? multiProductQuestionSubIntentUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('getMultiProductQuestionSubIntent LLM Response:', multiProductQuestionSubIntentLlmResponseText ? multiProductQuestionSubIntentLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var multiProductQuestionSubIntentEvalArgs = {
+            PromptArguments: multiProductQuestionSubIntentPromptArgumentsObj,
+            LLMRequestFormattedPrompt: multiProductQuestionSubIntentLlmRequestFormatedText,
+            UserMessage: multiProductQuestionSubIntentUserMessage || content,  // Fallback to content if userPrompt not found
+            ResponseLLM: multiProductQuestionSubIntentLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var multiProductQuestionSubIntentEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-multiproductquestionsubintent-evaluator.feature', multiProductQuestionSubIntentEvalArgs);
+          karate.log('MultiProductQuestionSubIntent Evaluator result - pass:', multiProductQuestionSubIntentEvalResult && multiProductQuestionSubIntentEvalResult.multiProductQuestionSubIntentValidationOut ? multiProductQuestionSubIntentEvalResult.multiProductQuestionSubIntentValidationOut.pass : 'undefined');
+
+          var multiProductQuestionSubIntentValidation = multiProductQuestionSubIntentEvalResult ? multiProductQuestionSubIntentEvalResult.multiProductQuestionSubIntentValidationOut : null;
+          var multiProductQuestionSubIntentPassed = multiProductQuestionSubIntentValidation && multiProductQuestionSubIntentValidation.pass === true;
+
+          if (!multiProductQuestionSubIntentPassed) {
+            testHasFailures = true;
+
+            var multiProductQuestionSubIntentErrorDetails = '';
+            if (multiProductQuestionSubIntentValidation) {
+              if (multiProductQuestionSubIntentValidation.scores) {
+                multiProductQuestionSubIntentErrorDetails += 'Scores: relevance=' + (multiProductQuestionSubIntentValidation.scores.relevance || 'N/A') +
+                  ', faithfulness=' + (multiProductQuestionSubIntentValidation.scores.faithfulness || 'N/A') +
+                  ', instructionCompliance=' + (multiProductQuestionSubIntentValidation.scores.instructionCompliance || 'N/A') +
+                  ', semanticCloseness=' + (multiProductQuestionSubIntentValidation.scores.semanticCloseness || 'N/A') + '. ';
+              }
+              // Include classified sub-intent info from AI
+              var parsedMultiProductQuestionSubIntentContent = multiProductQuestionSubIntentEvalResult.multiProductQuestionSubIntentEvaluatorResultOut ? multiProductQuestionSubIntentEvalResult.multiProductQuestionSubIntentEvaluatorResultOut.parsedContent : null;
+              if (parsedMultiProductQuestionSubIntentContent) {
+                if (parsedMultiProductQuestionSubIntentContent.classifiedSubIntent) {
+                  multiProductQuestionSubIntentErrorDetails += 'Classified SubIntent: ' + parsedMultiProductQuestionSubIntentContent.classifiedSubIntent + '. ';
+                }
+                if (parsedMultiProductQuestionSubIntentContent.expectedSubIntentCategory) {
+                  multiProductQuestionSubIntentErrorDetails += 'Expected SubIntent Category: ' + parsedMultiProductQuestionSubIntentContent.expectedSubIntentCategory + '. ';
+                }
+              }
+              if (multiProductQuestionSubIntentValidation.issues && multiProductQuestionSubIntentValidation.issues.length > 0) {
+                multiProductQuestionSubIntentErrorDetails += 'Issues: ' + multiProductQuestionSubIntentValidation.issues.join('; ') + '. ';
+              }
+              if (multiProductQuestionSubIntentValidation.summary) {
+                multiProductQuestionSubIntentErrorDetails += 'Summary: ' + multiProductQuestionSubIntentValidation.summary;
+              }
+            } else {
+              multiProductQuestionSubIntentErrorDetails = 'MultiProductQuestionSubIntent LLM evaluation failed or returned no validation';
+            }
+
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'getMultiProductQuestionSubIntent',
+              error: multiProductQuestionSubIntentErrorDetails,
+              responseLLM: multiProductQuestionSubIntentLlmResponseText ? (multiProductQuestionSubIntentLlmResponseText.length > 300 ? multiProductQuestionSubIntentLlmResponseText.substring(0, 300) + '...' : multiProductQuestionSubIntentLlmResponseText) : ''
+            });
+            karate.log('[SOFT FAIL] getMultiProductQuestionSubIntent validation:', multiProductQuestionSubIntentErrorDetails);
+            // Continue (soft validation mode)
+          }
+        } else {
+          karate.log('Skipping getMultiProductQuestionSubIntent validation (not present in trace data)');
+        }
+
         // ======================================================================
         // END OF VALIDATIONS - Determine final pass/fail status
         // ======================================================================

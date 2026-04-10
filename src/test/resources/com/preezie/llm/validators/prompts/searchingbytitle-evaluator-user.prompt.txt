@@ -1,0 +1,62 @@
+INPUTS:
+
+PromptArguments (Arguments):
+{{PromptArguments}}
+
+LLMRequestFormattedPrompt (Request):
+{{LLMRequestFormattedPrompt}}
+
+UserMessage:
+{{UserMessage}}
+
+AssistantResponse (LLM Response Formatted):
+{{ResponseLLM}}
+
+TASK:
+
+IMPORTANT: You are validating ONLY whether the LLM's response is correct given the instructions.
+DO NOT judge or evaluate the user's message itself - it can be anything.
+Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
+
+1. Review the LLMRequestFormattedPrompt to understand:
+   - The expected output format for title search extraction
+   - Guidelines for parsing user search queries
+2. Review PromptArguments for any additional context or configuration
+3. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
+   - Did the LLM correctly extract title-relevant search terms?
+   - Did it follow the expected parsing/extraction rules?
+4. Validate that the AssistantResponse:
+   - Follows the output format specified in the prompt
+   - Correctly interprets the user's search intent for title matching
+   - Does not hallucinate or add keywords not implied by the user query
+   - Returns an appropriate response structure
+
+SCORING RULES (0–5):
+- relevance: the response correctly extracts search terms relevant for title matching
+- faithfulness: no hallucinated search terms - all terms grounded in user query
+- instructionCompliance: follows the exact rules and format defined in LLMRequestFormattedPrompt
+- semanticCloseness: the extracted search terms accurately reflect the user's title search intent
+
+PASS CONDITIONS:
+- relevance >= 4
+- faithfulness >= 4
+- instructionCompliance >= 4
+- semanticCloseness >= 4
+
+RETURN ONLY THIS JSON STRUCTURE:
+
+{
+  "pass": true | false,
+  "scores": {
+    "relevance": number,
+    "faithfulness": number,
+    "instructionCompliance": number,
+    "semanticCloseness": number
+  },
+  "extractedTerms": "list of search terms extracted from the response",
+  "issues": [string],
+  "summary": "short explanation of whether the LLM correctly followed its title search instructions"
+}
+
+
+

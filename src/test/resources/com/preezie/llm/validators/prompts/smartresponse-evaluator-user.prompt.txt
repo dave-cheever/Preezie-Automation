@@ -14,25 +14,30 @@ AssistantResponse (Smart Response Result):
 
 TASK:
 
-1. Review the LLMRequestFormattedPrompt to understand the expected output format and rules.
-2. Review PromptArguments to understand:
-   - userPrompt: the user's original message/question
+IMPORTANT: You are validating ONLY whether the LLM's response is correct given the instructions.
+DO NOT judge or evaluate the user's message itself - it can be anything.
+Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
+
+1. Review the LLMRequestFormattedPrompt to understand:
+   - The expected output format and conversational rules
+   - Guidelines for product recommendations and responses
+2. Review PromptArguments for the GROUND TRUTH data:
    - baseProduct: the main product being discussed (if any)
-   - products: the available products data in JSON format for recommendations/responses
-3. Analyze the UserMessage to understand what the user is asking about.
-4. Determine whether the smart response in AssistantResponse:
-   - Correctly addresses the user's question or intent
-   - Uses accurate information from the provided products data
-   - Does not fabricate product features, prices, or availability not in the data
-   - Provides helpful and relevant product recommendations or information
-   - Maintains appropriate conversational tone
-5. Judge correctness and helpfulness of the response, with emphasis on data accuracy.
+   - products: the available products data for recommendations
+3. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
+   - Did the LLM correctly follow the response rules from the prompt?
+   - Is the response grounded in the provided product data?
+4. Validate that the AssistantResponse:
+   - Follows the output format specified in the prompt
+   - Uses ONLY information from the provided product data (no hallucinations)
+   - Follows the conversational guidelines per the prompt
+   - Does not fabricate product features, prices, or availability
 
 SCORING RULES (0–5):
-- relevance: the response directly addresses what the user is asking about
-- faithfulness: no hallucinated product details, invented features, or fabricated information
-- instructionCompliance: follows the response format and rules defined in the prompt
-- semanticCloseness: the response accurately represents user's intent and provides appropriate product information
+- relevance: the response follows the prompt's response guidelines
+- faithfulness: no hallucinated product details - all info grounded in provided data
+- instructionCompliance: follows the exact rules and format defined in LLMRequestFormattedPrompt
+- semanticCloseness: the response type matches what the prompt instructions dictate
 
 PASS CONDITIONS:
 - relevance >= 4
@@ -53,7 +58,7 @@ RETURN ONLY THIS JSON STRUCTURE:
   "responseType": "recommendation | answer | information | error",
   "productsReferenced": "list of product names/IDs referenced in the response",
   "issues": [string],
-  "summary": "short explanation of why the smart response is correct or incorrect"
+  "summary": "short explanation of whether the LLM correctly followed its response instructions"
 }
 
 
