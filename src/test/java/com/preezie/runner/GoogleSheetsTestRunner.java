@@ -445,6 +445,23 @@ public class GoogleSheetsTestRunner {
                     sheetsCostSummary.setSpecificProductQuestionCost(specificProductQuestionCost);
                 }
                 
+                // Add specificProductQuestionResponse breakdown
+                CostCalculator.ValidationTypeSummary specificProductQuestionResponseData = costSummary.getGetSpecificProductQuestionResponseSummary();
+                if (specificProductQuestionResponseData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary specificProductQuestionResponseCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    specificProductQuestionResponseCost.setCount(specificProductQuestionResponseData.getCount());
+                    specificProductQuestionResponseCost.setPromptTokens(specificProductQuestionResponseData.getPromptTokens());
+                    specificProductQuestionResponseCost.setCompletionTokens(specificProductQuestionResponseData.getCompletionTokens());
+                    specificProductQuestionResponseCost.setTotalTokens(specificProductQuestionResponseData.getTotalTokens());
+                    specificProductQuestionResponseCost.setInputCost(specificProductQuestionResponseData.getInputCost().doubleValue());
+                    specificProductQuestionResponseCost.setOutputCost(specificProductQuestionResponseData.getOutputCost().doubleValue());
+                    specificProductQuestionResponseCost.setTotalCost(specificProductQuestionResponseData.getTotalCost().doubleValue());
+                    specificProductQuestionResponseCost.setAvgCostPerRequest(specificProductQuestionResponseData.getAvgCostPerRequest().doubleValue());
+                    specificProductQuestionResponseCost.setAvgPromptTokens(specificProductQuestionResponseData.getAvgPromptTokens());
+                    specificProductQuestionResponseCost.setAvgCompletionTokens(specificProductQuestionResponseData.getAvgCompletionTokens());
+                    sheetsCostSummary.setSpecificProductQuestionResponseCost(specificProductQuestionResponseCost);
+                }
+                
                 // Add detailed usage data
                 List<UsageData> usageDataList = readUsageData(usageCsvPath);
                 for (UsageData usage : usageDataList) {

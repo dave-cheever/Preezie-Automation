@@ -343,5 +343,29 @@
           if (obj) return obj;
         }
         return null;
+      },
+
+  // ========== specificProductQuestionResponse Prompt Arguments ==========
+  // Fields: userPrompt, brandOverview, product (may vary based on actual implementation)
+  getSpecificProductQuestionResponsePromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        userPrompt: args.userPrompt || '',
+        brandOverview: args.brandOverview || '',
+        product: args.product || '',
+        choices: args.choices || ''
+      };
+    },
+
+    getFirstSpecificProductQuestionResponsePromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getSpecificProductQuestionResponsePromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
       }
 })

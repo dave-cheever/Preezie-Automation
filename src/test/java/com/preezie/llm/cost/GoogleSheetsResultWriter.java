@@ -349,6 +349,28 @@ public class GoogleSheetsResultWriter {
             }
             data.add(Arrays.asList("")); // Empty row
             
+            // specificProductQuestionResponse Section
+            data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
+            data.add(Arrays.asList("AI COST SUMMARY - specificProductQuestionResponse"));
+            data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
+            data.add(Arrays.asList("Metric", "Value"));
+            if (cost.getSpecificProductQuestionResponseCost() != null) {
+                ValidationTypeCostSummary specificProductQuestionResponseCost = cost.getSpecificProductQuestionResponseCost();
+                data.add(Arrays.asList("Evaluations", specificProductQuestionResponseCost.getCount()));
+                data.add(Arrays.asList("Prompt Tokens", String.format("%,d", specificProductQuestionResponseCost.getPromptTokens())));
+                data.add(Arrays.asList("Completion Tokens", String.format("%,d", specificProductQuestionResponseCost.getCompletionTokens())));
+                data.add(Arrays.asList("Total Tokens", String.format("%,d", specificProductQuestionResponseCost.getTotalTokens())));
+                data.add(Arrays.asList("Input Cost", String.format("$%.6f", specificProductQuestionResponseCost.getInputCost())));
+                data.add(Arrays.asList("Output Cost", String.format("$%.6f", specificProductQuestionResponseCost.getOutputCost())));
+                data.add(Arrays.asList("Total Cost", String.format("$%.6f", specificProductQuestionResponseCost.getTotalCost())));
+                data.add(Arrays.asList("Avg Cost/Evaluation", String.format("$%.6f", specificProductQuestionResponseCost.getAvgCostPerRequest())));
+                data.add(Arrays.asList("Avg Prompt Tokens", String.format("%.2f", specificProductQuestionResponseCost.getAvgPromptTokens())));
+                data.add(Arrays.asList("Avg Completion Tokens", String.format("%.2f", specificProductQuestionResponseCost.getAvgCompletionTokens())));
+            } else {
+                data.add(Arrays.asList("No data", "N/A"));
+            }
+            data.add(Arrays.asList("")); // Empty row
+            
             // Combined Total Section
             data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
             data.add(Arrays.asList("COMBINED TOTAL AI COST SUMMARY"));
@@ -365,6 +387,7 @@ public class GoogleSheetsResultWriter {
             int multiProductQuestionSubIntentCount = cost.getMultiProductQuestionSubIntentCost() != null ? cost.getMultiProductQuestionSubIntentCost().getCount() : 0;
             int searchingByTitleCount = cost.getSearchingByTitleCost() != null ? cost.getSearchingByTitleCost().getCount() : 0;
             int specificProductQuestionCount = cost.getSpecificProductQuestionCost() != null ? cost.getSpecificProductQuestionCost().getCount() : 0;
+            int specificProductQuestionResponseCount = cost.getSpecificProductQuestionResponseCost() != null ? cost.getSpecificProductQuestionResponseCost().getCount() : 0;
             data.add(Arrays.asList("  - getIntentSummary", intentSummaryCount));
             data.add(Arrays.asList("  - getIntent", intentCount));
             data.add(Arrays.asList("  - getCategories", categoriesCount));
@@ -375,6 +398,7 @@ public class GoogleSheetsResultWriter {
             data.add(Arrays.asList("  - getMultiProductQuestionSubIntent", multiProductQuestionSubIntentCount));
             data.add(Arrays.asList("  - searchingByTitle", searchingByTitleCount));
             data.add(Arrays.asList("  - specificProductQuestion", specificProductQuestionCount));
+            data.add(Arrays.asList("  - specificProductQuestionResponse", specificProductQuestionResponseCount));
             data.add(Arrays.asList(""));
             data.add(Arrays.asList("Total Prompt Tokens", String.format("%,d", cost.getTotalPromptTokens())));
             data.add(Arrays.asList("Total Completion Tokens", String.format("%,d", cost.getTotalCompletionTokens())));
@@ -570,6 +594,7 @@ public class GoogleSheetsResultWriter {
         private ValidationTypeCostSummary multiProductQuestionSubIntentCost;
         private ValidationTypeCostSummary searchingByTitleCost;
         private ValidationTypeCostSummary specificProductQuestionCost;
+        private ValidationTypeCostSummary specificProductQuestionResponseCost;
 
         // Getters and setters
         public int getTotalRequests() { return totalRequests; }
@@ -635,6 +660,9 @@ public class GoogleSheetsResultWriter {
         
         public ValidationTypeCostSummary getSpecificProductQuestionCost() { return specificProductQuestionCost; }
         public void setSpecificProductQuestionCost(ValidationTypeCostSummary specificProductQuestionCost) { this.specificProductQuestionCost = specificProductQuestionCost; }
+        
+        public ValidationTypeCostSummary getSpecificProductQuestionResponseCost() { return specificProductQuestionResponseCost; }
+        public void setSpecificProductQuestionResponseCost(ValidationTypeCostSummary specificProductQuestionResponseCost) { this.specificProductQuestionResponseCost = specificProductQuestionResponseCost; }
     }
 
     /**
