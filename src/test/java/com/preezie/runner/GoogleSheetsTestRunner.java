@@ -462,6 +462,23 @@ public class GoogleSheetsTestRunner {
                     sheetsCostSummary.setSpecificProductQuestionResponseCost(specificProductQuestionResponseCost);
                 }
                 
+                // Add specificProductSizeRecommendation breakdown
+                CostCalculator.ValidationTypeSummary specificProductSizeRecommendationData = costSummary.getGetSpecificProductSizeRecommendationSummary();
+                if (specificProductSizeRecommendationData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary specificProductSizeRecommendationCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    specificProductSizeRecommendationCost.setCount(specificProductSizeRecommendationData.getCount());
+                    specificProductSizeRecommendationCost.setPromptTokens(specificProductSizeRecommendationData.getPromptTokens());
+                    specificProductSizeRecommendationCost.setCompletionTokens(specificProductSizeRecommendationData.getCompletionTokens());
+                    specificProductSizeRecommendationCost.setTotalTokens(specificProductSizeRecommendationData.getTotalTokens());
+                    specificProductSizeRecommendationCost.setInputCost(specificProductSizeRecommendationData.getInputCost().doubleValue());
+                    specificProductSizeRecommendationCost.setOutputCost(specificProductSizeRecommendationData.getOutputCost().doubleValue());
+                    specificProductSizeRecommendationCost.setTotalCost(specificProductSizeRecommendationData.getTotalCost().doubleValue());
+                    specificProductSizeRecommendationCost.setAvgCostPerRequest(specificProductSizeRecommendationData.getAvgCostPerRequest().doubleValue());
+                    specificProductSizeRecommendationCost.setAvgPromptTokens(specificProductSizeRecommendationData.getAvgPromptTokens());
+                    specificProductSizeRecommendationCost.setAvgCompletionTokens(specificProductSizeRecommendationData.getAvgCompletionTokens());
+                    sheetsCostSummary.setSpecificProductSizeRecommendationCost(specificProductSizeRecommendationCost);
+                }
+                
                 // Add detailed usage data
                 List<UsageData> usageDataList = readUsageData(usageCsvPath);
                 for (UsageData usage : usageDataList) {
@@ -586,13 +603,14 @@ public class GoogleSheetsTestRunner {
             if (line.trim().isEmpty()) continue;
             if (line.startsWith("tenantId") || line.contains("prompt_tokens")) continue;
             
-            String[] values = line.split(",");
+            // Parse CSV respecting quoted fields (handles commas inside quotes)
+            String[] values = parseCsvLine(line);
             if (values.length >= 8) {
                 try {
                     usageDataList.add(new UsageData.Builder()
-                            .tenantId(values[0].replace("'", "").replace("\"", "").trim())
-                            .content(values[1].replace("'", "").replace("\"", "").trim())
-                            .modelName(values[2].replace("'", "").replace("\"", "").trim())
+                            .tenantId(values[0].replace("\"", "").trim())
+                            .content(values[1].replace("\"", "").trim())
+                            .modelName(values[2].replace("\"", "").trim())
                             .promptTokens(Integer.parseInt(values[3].trim()))
                             .completionTokens(Integer.parseInt(values[4].trim()))
                             .totalTokens(Integer.parseInt(values[5].trim()))
@@ -600,12 +618,42 @@ public class GoogleSheetsTestRunner {
                             .audioTokens(Integer.parseInt(values[7].trim()))
                             .build());
                 } catch (NumberFormatException e) {
-                    // Skip invalid lines
+                    System.out.println("Warning: Failed to parse line: " + line);
+                    System.out.println("  Error: " + e.getMessage());
                 }
             }
         }
         
         return usageDataList;
+    }
+    
+    /**
+     * Parse a CSV line respecting quoted fields (commas inside quotes are not delimiters).
+     */
+    private String[] parseCsvLine(String line) {
+        List<String> fields = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean inQuotes = false;
+        
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (c == '"') {
+                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                    current.append('"');
+                    i++; // skip escaped quote
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (c == ',' && !inQuotes) {
+                fields.add(current.toString());
+                current = new StringBuilder();
+            } else {
+                current.append(c);
+            }
+        }
+        fields.add(current.toString());
+        
+        return fields.toArray(new String[0]);
     }
     
     private String padRight(String s, int length) {

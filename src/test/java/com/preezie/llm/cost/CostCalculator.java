@@ -9,7 +9,7 @@ public class CostCalculator {
     public CostSummary calculateSummary(List<UsageData> usageDataList) {
         if (usageDataList == null || usageDataList.isEmpty()) {
             return new CostSummary(0, 0, 0, 0, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 
-                    new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary());
+                    new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary());
         }
 
         int totalRequests = usageDataList.size();
@@ -31,6 +31,7 @@ public class CostCalculator {
         ValidationTypeSummary searchingByTitleSummary = new ValidationTypeSummary();
         ValidationTypeSummary specificProductQuestionSummary = new ValidationTypeSummary();
         ValidationTypeSummary specificProductQuestionResponseSummary = new ValidationTypeSummary();
+        ValidationTypeSummary specificProductSizeRecommendationSummary = new ValidationTypeSummary();
 
         for (UsageData data : usageDataList) {
             totalPromptTokens += data.getPromptTokens();
@@ -62,6 +63,8 @@ public class CostCalculator {
                     searchingByTitleSummary.addUsage(data);
                 } else if (content.contains("[specificProductQuestionResponse]")) {
                     specificProductQuestionResponseSummary.addUsage(data);
+                } else if (content.contains("[specificProductSizeRecommendation]")) {
+                    specificProductSizeRecommendationSummary.addUsage(data);
                 } else if (content.contains("[specificProductQuestion]")) {
                     specificProductQuestionSummary.addUsage(data);
                 }
@@ -86,7 +89,8 @@ public class CostCalculator {
                 multiProductQuestionSubIntentSummary,
                 searchingByTitleSummary,
                 specificProductQuestionSummary,
-                specificProductQuestionResponseSummary
+                specificProductQuestionResponseSummary,
+                specificProductSizeRecommendationSummary
         );
     }
 
@@ -144,6 +148,7 @@ public class CostCalculator {
         private final ValidationTypeSummary getSearchingByTitleSummary;
         private final ValidationTypeSummary getSpecificProductQuestionSummary;
         private final ValidationTypeSummary getSpecificProductQuestionResponseSummary;
+        private final ValidationTypeSummary getSpecificProductSizeRecommendationSummary;
 
         public CostSummary(int totalRequests, int totalPromptTokens, int totalCompletionTokens,
                            int totalTokens, BigDecimal totalInputCost, BigDecimal totalOutputCost,
@@ -152,7 +157,8 @@ public class CostCalculator {
                            ValidationTypeSummary getFindProductSummary, ValidationTypeSummary getSmartResponseSummary,
                            ValidationTypeSummary getGetUserInformationSummary, ValidationTypeSummary getSpecificQuestionSubIntentSummary,
                            ValidationTypeSummary getMultiProductQuestionSubIntentSummary, ValidationTypeSummary getSearchingByTitleSummary,
-                           ValidationTypeSummary getSpecificProductQuestionSummary, ValidationTypeSummary getSpecificProductQuestionResponseSummary) {
+                           ValidationTypeSummary getSpecificProductQuestionSummary, ValidationTypeSummary getSpecificProductQuestionResponseSummary,
+                           ValidationTypeSummary getSpecificProductSizeRecommendationSummary) {
             this.totalRequests = totalRequests;
             this.totalPromptTokens = totalPromptTokens;
             this.totalCompletionTokens = totalCompletionTokens;
@@ -171,6 +177,7 @@ public class CostCalculator {
             this.getSearchingByTitleSummary = getSearchingByTitleSummary;
             this.getSpecificProductQuestionSummary = getSpecificProductQuestionSummary;
             this.getSpecificProductQuestionResponseSummary = getSpecificProductQuestionResponseSummary;
+            this.getSpecificProductSizeRecommendationSummary = getSpecificProductSizeRecommendationSummary;
         }
 
         public BigDecimal getAverageCostPerRequest() {
@@ -206,6 +213,7 @@ public class CostCalculator {
         public ValidationTypeSummary getGetSearchingByTitleSummary() { return getSearchingByTitleSummary; }
         public ValidationTypeSummary getGetSpecificProductQuestionSummary() { return getSpecificProductQuestionSummary; }
         public ValidationTypeSummary getGetSpecificProductQuestionResponseSummary() { return getSpecificProductQuestionResponseSummary; }
+        public ValidationTypeSummary getGetSpecificProductSizeRecommendationSummary() { return getSpecificProductSizeRecommendationSummary; }
         
         // Double getters for easier use
         public double getTotalInputCostDouble() { return totalInputCost.doubleValue(); }
@@ -548,6 +556,36 @@ public class CostCalculator {
                     getSpecificProductQuestionResponseSummary.getAvgPromptTokens(),
                     getSpecificProductQuestionResponseSummary.getAvgCompletionTokens()));
 
+            // specificProductSizeRecommendation Section
+            sb.append("""
+                    
+                    ═══════════════════════════════════════════════════════════════
+                                    AI COST SUMMARY - specificProductSizeRecommendation
+                    ═══════════════════════════════════════════════════════════════
+                    """);
+            sb.append(String.format("""
+                    Evaluations:              %d
+                    Prompt Tokens:            %,d
+                    Completion Tokens:        %,d
+                    Total Tokens:             %,d
+                    Input Cost:               $%.6f
+                    Output Cost:              $%.6f
+                    Total Cost:               $%.6f
+                    Avg Cost/Evaluation:      $%.6f
+                    Avg Prompt Tokens:        %.2f
+                    Avg Completion Tokens:    %.2f
+                    """,
+                    getSpecificProductSizeRecommendationSummary.getCount(),
+                    getSpecificProductSizeRecommendationSummary.getPromptTokens(),
+                    getSpecificProductSizeRecommendationSummary.getCompletionTokens(),
+                    getSpecificProductSizeRecommendationSummary.getTotalTokens(),
+                    getSpecificProductSizeRecommendationSummary.getInputCost(),
+                    getSpecificProductSizeRecommendationSummary.getOutputCost(),
+                    getSpecificProductSizeRecommendationSummary.getTotalCost(),
+                    getSpecificProductSizeRecommendationSummary.getAvgCostPerRequest(),
+                    getSpecificProductSizeRecommendationSummary.getAvgPromptTokens(),
+                    getSpecificProductSizeRecommendationSummary.getAvgCompletionTokens()));
+
             // Combined Total Section
             sb.append("""
                     
@@ -568,6 +606,7 @@ public class CostCalculator {
                       - searchingByTitle:     %d
                       - specificProductQuestion: %d
                       - specificProductQuestionResponse: %d
+                      - specificProductSizeRecommendation: %d
                     ───────────────────────────────────────────────────────────────
                     Total Prompt Tokens:      %,d
                     Total Completion Tokens:  %,d
@@ -582,7 +621,7 @@ public class CostCalculator {
                     Avg Completion Tokens:    %.2f
                     ═══════════════════════════════════════════════════════════════
                     """,
-                    totalRequests, getIntentSummarySummary.getCount(), getIntentSummary.getCount(), getCategoriesSummary.getCount(), getFindProductSummary.getCount(), getSmartResponseSummary.getCount(), getGetUserInformationSummary.getCount(), getSpecificQuestionSubIntentSummary.getCount(), getMultiProductQuestionSubIntentSummary.getCount(), getSearchingByTitleSummary.getCount(), getSpecificProductQuestionSummary.getCount(), getSpecificProductQuestionResponseSummary.getCount(),
+                    totalRequests, getIntentSummarySummary.getCount(), getIntentSummary.getCount(), getCategoriesSummary.getCount(), getFindProductSummary.getCount(), getSmartResponseSummary.getCount(), getGetUserInformationSummary.getCount(), getSpecificQuestionSubIntentSummary.getCount(), getMultiProductQuestionSubIntentSummary.getCount(), getSearchingByTitleSummary.getCount(), getSpecificProductQuestionSummary.getCount(), getSpecificProductQuestionResponseSummary.getCount(), getSpecificProductSizeRecommendationSummary.getCount(),
                     totalPromptTokens, totalCompletionTokens, totalTokens,
                     totalInputCost, totalOutputCost, totalCost,
                     getAverageCostPerRequest(), getAveragePromptTokens(), getAverageCompletionTokens()));

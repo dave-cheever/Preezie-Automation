@@ -108,6 +108,10 @@ Scenario: Run all enabled tests from Google Sheets
 
         var traceData = cmsResponse.data;
         karate.log('Trace data retrieved, items:', traceData ? traceData.length : 0);
+        if (traceData && traceData.length > 0) {
+          var agentNames = karate.map(traceData, function(x){ return x.agentName });
+          karate.log('All agent names in trace:', JSON.stringify(agentNames));
+        }
 
         // 3) Validate promptGlobalFilter.Safe (HARD validation - stops if failed)
         karate.log('Step 3: Validating promptGlobalFilter.Safe...');
@@ -964,6 +968,102 @@ Scenario: Run all enabled tests from Google Sheets
           }
         } else {
           karate.log('Skipping specificProductQuestionResponse validation (not present in trace data)');
+        }
+
+        // 15) Validate specificProductSizeRecommendation with AI Judge (SOFT validation)
+        karate.log('Step 15: Validating specificProductSizeRecommendation with AI Judge...');
+        // Debug: log all agent names to help identify the correct name
+        if (traceData && traceData.length > 0) {
+          var allAgentNames = [];
+          for (var i = 0; i < traceData.length; i++) {
+            var name = traceData[i].agentName || 'undefined';
+            if (allAgentNames.indexOf(name) === -1) allAgentNames.push(name);
+          }
+          karate.log('DEBUG Step 15 - All unique agent names in trace data:', JSON.stringify(allAgentNames));
+          // Also check for partial matches
+          var sizeRelated = karate.filter(traceData, function(x){
+            return x.agentName && (x.agentName.toLowerCase().indexOf('size') >= 0 || x.agentName.toLowerCase().indexOf('recommendation') >= 0);
+          });
+          karate.log('DEBUG Step 15 - Agents containing "size" or "recommendation":', sizeRelated.length);
+          if (sizeRelated.length > 0) {
+            for (var j = 0; j < sizeRelated.length; j++) {
+              karate.log('DEBUG Step 15 - Size-related agent found: "' + sizeRelated[j].agentName + '"');
+            }
+          }
+        }
+        var getSpecificProductSizeRecommendationItems = karate.filter(traceData, function(x){ return x.agentName == 'specificProductSizeRecommendation' });
+        karate.log('specificProductSizeRecommendation items found:', getSpecificProductSizeRecommendationItems.length);
+
+        if (getSpecificProductSizeRecommendationItems.length > 0) {
+          var specificProductSizeRecommendationLlmResponseText = utils.getFirstLLMResponseText(getSpecificProductSizeRecommendationItems);
+          var specificProductSizeRecommendationPromptArgumentsObj = utils.getFirstSpecificProductSizeRecommendationPromptArguments(getSpecificProductSizeRecommendationItems);
+          var specificProductSizeRecommendationLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(getSpecificProductSizeRecommendationItems);
+
+          // Use the actual UserMessage from specificProductSizeRecommendation's prompt arguments
+          var specificProductSizeRecommendationUserMessage = utils.getFirstUserPromptOnly(getSpecificProductSizeRecommendationItems);
+          karate.log('specificProductSizeRecommendation UserMessage from trace:', specificProductSizeRecommendationUserMessage ? specificProductSizeRecommendationUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('specificProductSizeRecommendation LLM Response:', specificProductSizeRecommendationLlmResponseText ? specificProductSizeRecommendationLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var specificProductSizeRecommendationEvalArgs = {
+            PromptArguments: specificProductSizeRecommendationPromptArgumentsObj,
+            LLMRequestFormattedPrompt: specificProductSizeRecommendationLlmRequestFormatedText,
+            UserMessage: specificProductSizeRecommendationUserMessage || content,  // Fallback to content if userPrompt not found
+            ResponseLLM: specificProductSizeRecommendationLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var specificProductSizeRecommendationEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-specificproductsizerecommendation-evaluator.feature', specificProductSizeRecommendationEvalArgs);
+          karate.log('SpecificProductSizeRecommendation Evaluator result - pass:', specificProductSizeRecommendationEvalResult && specificProductSizeRecommendationEvalResult.specificProductSizeRecommendationValidationOut ? specificProductSizeRecommendationEvalResult.specificProductSizeRecommendationValidationOut.pass : 'undefined');
+
+          var specificProductSizeRecommendationValidation = specificProductSizeRecommendationEvalResult ? specificProductSizeRecommendationEvalResult.specificProductSizeRecommendationValidationOut : null;
+          var specificProductSizeRecommendationPassed = specificProductSizeRecommendationValidation && specificProductSizeRecommendationValidation.pass === true;
+
+          if (!specificProductSizeRecommendationPassed) {
+            testHasFailures = true;
+
+            var specificProductSizeRecommendationErrorDetails = '';
+            if (specificProductSizeRecommendationValidation) {
+              if (specificProductSizeRecommendationValidation.scores) {
+                specificProductSizeRecommendationErrorDetails += 'Scores: relevance=' + (specificProductSizeRecommendationValidation.scores.relevance || 'N/A') +
+                  ', faithfulness=' + (specificProductSizeRecommendationValidation.scores.faithfulness || 'N/A') +
+                  ', instructionCompliance=' + (specificProductSizeRecommendationValidation.scores.instructionCompliance || 'N/A') +
+                  ', semanticCloseness=' + (specificProductSizeRecommendationValidation.scores.semanticCloseness || 'N/A') + '. ';
+              }
+              // Include response analysis from AI
+              var parsedSpecificProductSizeRecommendationContent = specificProductSizeRecommendationEvalResult.specificProductSizeRecommendationEvaluatorResultOut ? specificProductSizeRecommendationEvalResult.specificProductSizeRecommendationEvaluatorResultOut.parsedContent : null;
+              if (parsedSpecificProductSizeRecommendationContent) {
+                if (parsedSpecificProductSizeRecommendationContent.responseAnalysis) {
+                  specificProductSizeRecommendationErrorDetails += 'Response Analysis: ' + parsedSpecificProductSizeRecommendationContent.responseAnalysis + '. ';
+                }
+                if (parsedSpecificProductSizeRecommendationContent.expectedBehavior) {
+                  specificProductSizeRecommendationErrorDetails += 'Expected Behavior: ' + parsedSpecificProductSizeRecommendationContent.expectedBehavior + '. ';
+                }
+              }
+              if (specificProductSizeRecommendationValidation.issues && specificProductSizeRecommendationValidation.issues.length > 0) {
+                specificProductSizeRecommendationErrorDetails += 'Issues: ' + specificProductSizeRecommendationValidation.issues.join('; ') + '. ';
+              }
+              if (specificProductSizeRecommendationValidation.summary) {
+                specificProductSizeRecommendationErrorDetails += 'Summary: ' + specificProductSizeRecommendationValidation.summary;
+              }
+            } else {
+              specificProductSizeRecommendationErrorDetails = 'SpecificProductSizeRecommendation LLM evaluation failed or returned no validation';
+            }
+
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'specificProductSizeRecommendation',
+              error: specificProductSizeRecommendationErrorDetails,
+              responseLLM: specificProductSizeRecommendationLlmResponseText ? (specificProductSizeRecommendationLlmResponseText.length > 300 ? specificProductSizeRecommendationLlmResponseText.substring(0, 300) + '...' : specificProductSizeRecommendationLlmResponseText) : ''
+            });
+            karate.log('[SOFT FAIL] specificProductSizeRecommendation validation:', specificProductSizeRecommendationErrorDetails);
+            // Continue (soft validation mode)
+          }
+        } else {
+          karate.log('Skipping specificProductSizeRecommendation validation (not present in trace data)');
         }
 
         // ======================================================================
