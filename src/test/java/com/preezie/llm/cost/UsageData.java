@@ -55,8 +55,11 @@ public class UsageData {
     public double getTotalCostDouble() { return totalCost.doubleValue(); }
 
     public String toCsvRow() {
-        return String.format("%s,%s,%s,%d,%d,%d,%d,%d,%.6f,%.6f,%.6f",
-                tenantId, content, modelName, promptTokens, completionTokens,
+        return String.format("\"%s\",\"%s\",\"%s\",%d,%d,%d,%d,%d,%.6f,%.6f,%.6f",
+                tenantId.replace("\"", "\"\""),
+                content.replace("\"", "\"\""),
+                modelName.replace("\"", "\"\""),
+                promptTokens, completionTokens,
                 totalTokens, cachedTokens, audioTokens,
                 inputCost, outputCost, totalCost);
     }

@@ -367,5 +367,31 @@
           if (obj) return obj;
         }
         return null;
+      },
+
+  // ========== specificProductSizeRecommendation Prompt Arguments ==========
+  // Fields: userProfile, toneOfVoice, brandOverview, userInput, productSizeData, productName
+  getSpecificProductSizeRecommendationPromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        userProfile: args.userProfile || '',
+        toneOfVoice: args.toneOfVoice || '',
+        brandOverview: args.brandOverview || '',
+        userInput: args.userInput || '',
+        productSizeData: args.productSizeData || '',
+        productName: args.productName || ''
+      };
+    },
+
+    getFirstSpecificProductSizeRecommendationPromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getSpecificProductSizeRecommendationPromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
       }
 })

@@ -1,0 +1,61 @@
+INPUTS:
+
+PromptArguments (contains user profile, tone of voice, brand overview, user input, product size data, and product name):
+{{PromptArguments}}
+
+LLMRequestFormattedPrompt (the instructions given to the LLM):
+{{LLMRequestFormattedPrompt}}
+
+UserMessage (the user's question about product size recommendation):
+{{UserMessage}}
+
+AssistantResponse (the LLM's size recommendation response):
+{{ResponseLLM}}
+
+TASK:
+
+IMPORTANT: You are validating ONLY whether the LLM's response is correct given the instructions.
+DO NOT judge or evaluate the user's message itself - it can be anything (size questions, random text, etc.).
+Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
+
+1. Review the LLMRequestFormattedPrompt to understand:
+   - What response format is expected
+   - What rules govern how to provide size recommendations
+   - What user profile and product size data should be used
+   - How edge cases should be handled
+2. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
+   - Did the LLM correctly apply the size recommendation rules from the prompt?
+   - Is the response format correct as specified?
+   - Does the response properly use the available product size data and user profile?
+   - Does the response match the specified tone of voice and brand overview?
+3. Evaluate if the response is:
+   - Faithful to the instructions in the prompt
+   - Properly formatted according to requirements
+   - Providing accurate size recommendations based on the product size data
+   - Appropriately considering the user profile information
+
+Score each aspect 0-10:
+- relevance: How well does the response address what was asked given the instructions?
+- faithfulness: Does the response follow the prompt's rules and use provided size data correctly?
+- instructionCompliance: Did the LLM follow ALL specified instructions in the prompt?
+- semanticCloseness: How well does the response semantically match expected behavior?
+
+Pass threshold: All scores >= 7 AND instructionCompliance >= 8
+
+Return your evaluation as JSON:
+{
+  "pass": true | false,
+  "scores": {
+    "relevance": number,
+    "faithfulness": number,
+    "instructionCompliance": number,
+    "semanticCloseness": number
+  },
+  "responseAnalysis": "brief analysis of what the LLM size recommendation response contains",
+  "expectedBehavior": "what the prompt rules dictate the size recommendation response should be",
+  "issues": [string],
+  "summary": "short explanation of whether the LLM correctly followed its size recommendation instructions"
+}
+
+
+
