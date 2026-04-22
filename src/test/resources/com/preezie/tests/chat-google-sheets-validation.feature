@@ -1066,6 +1066,160 @@ Scenario: Run all enabled tests from Google Sheets
           karate.log('Skipping specificProductSizeRecommendation validation (not present in trace data)');
         }
 
+        // 16) Validate similarBaseProduct with AI Judge (SOFT validation)
+        karate.log('Step 16: Validating similarBaseProduct with AI Judge...');
+        var getSimilarBaseProductItems = karate.filter(traceData, function(x){ return x.agentName == 'similarBaseProduct' });
+        karate.log('similarBaseProduct items found:', getSimilarBaseProductItems.length);
+
+        if (getSimilarBaseProductItems.length > 0) {
+          var similarBaseProductLlmResponseText = utils.getFirstLLMResponseText(getSimilarBaseProductItems);
+          var similarBaseProductPromptArgumentsObj = utils.getFirstSimilarBaseProductPromptArguments(getSimilarBaseProductItems);
+          var similarBaseProductLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(getSimilarBaseProductItems);
+
+          // Use the actual UserMessage from similarBaseProduct's prompt arguments
+          var similarBaseProductUserMessage = utils.getFirstUserPromptOnly(getSimilarBaseProductItems);
+          karate.log('similarBaseProduct UserMessage from trace:', similarBaseProductUserMessage ? similarBaseProductUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('similarBaseProduct LLM Response:', similarBaseProductLlmResponseText ? similarBaseProductLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var similarBaseProductEvalArgs = {
+            PromptArguments: similarBaseProductPromptArgumentsObj,
+            LLMRequestFormattedPrompt: similarBaseProductLlmRequestFormatedText,
+            UserMessage: similarBaseProductUserMessage || content,  // Fallback to content if userPrompt not found
+            ResponseLLM: similarBaseProductLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var similarBaseProductEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-similarbaseproduct-evaluator.feature', similarBaseProductEvalArgs);
+          karate.log('SimilarBaseProduct Evaluator result - pass:', similarBaseProductEvalResult && similarBaseProductEvalResult.similarBaseProductValidationOut ? similarBaseProductEvalResult.similarBaseProductValidationOut.pass : 'undefined');
+
+          var similarBaseProductValidation = similarBaseProductEvalResult ? similarBaseProductEvalResult.similarBaseProductValidationOut : null;
+          var similarBaseProductPassed = similarBaseProductValidation && similarBaseProductValidation.pass === true;
+
+          if (!similarBaseProductPassed) {
+            testHasFailures = true;
+
+            var similarBaseProductErrorDetails = '';
+            if (similarBaseProductValidation) {
+              if (similarBaseProductValidation.scores) {
+                similarBaseProductErrorDetails += 'Scores: relevance=' + (similarBaseProductValidation.scores.relevance || 'N/A') +
+                  ', faithfulness=' + (similarBaseProductValidation.scores.faithfulness || 'N/A') +
+                  ', instructionCompliance=' + (similarBaseProductValidation.scores.instructionCompliance || 'N/A') +
+                  ', semanticCloseness=' + (similarBaseProductValidation.scores.semanticCloseness || 'N/A') + '. ';
+              }
+              // Include response analysis from AI
+              var parsedSimilarBaseProductContent = similarBaseProductEvalResult.similarBaseProductEvaluatorResultOut ? similarBaseProductEvalResult.similarBaseProductEvaluatorResultOut.parsedContent : null;
+              if (parsedSimilarBaseProductContent) {
+                if (parsedSimilarBaseProductContent.responseAnalysis) {
+                  similarBaseProductErrorDetails += 'Response Analysis: ' + parsedSimilarBaseProductContent.responseAnalysis + '. ';
+                }
+                if (parsedSimilarBaseProductContent.expectedBehavior) {
+                  similarBaseProductErrorDetails += 'Expected Behavior: ' + parsedSimilarBaseProductContent.expectedBehavior + '. ';
+                }
+              }
+              if (similarBaseProductValidation.issues && similarBaseProductValidation.issues.length > 0) {
+                similarBaseProductErrorDetails += 'Issues: ' + similarBaseProductValidation.issues.join('; ') + '. ';
+              }
+              if (similarBaseProductValidation.summary) {
+                similarBaseProductErrorDetails += 'Summary: ' + similarBaseProductValidation.summary;
+              }
+            } else {
+              similarBaseProductErrorDetails = 'SimilarBaseProduct LLM evaluation failed or returned no validation';
+            }
+
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'similarBaseProduct',
+              error: similarBaseProductErrorDetails,
+              responseLLM: similarBaseProductLlmResponseText ? (similarBaseProductLlmResponseText.length > 300 ? similarBaseProductLlmResponseText.substring(0, 300) + '...' : similarBaseProductLlmResponseText) : ''
+            });
+            karate.log('[SOFT FAIL] similarBaseProduct validation:', similarBaseProductErrorDetails);
+            // Continue (soft validation mode)
+          }
+        } else {
+          karate.log('Skipping similarBaseProduct validation (not present in trace data)');
+        }
+
+        // 17) Validate productCompareResponse with AI Judge (SOFT validation)
+        karate.log('Step 17: Validating productCompareResponse with AI Judge...');
+        var getProductCompareResponseItems = karate.filter(traceData, function(x){ return x.agentName == 'productCompareResponse' });
+        karate.log('productCompareResponse items found:', getProductCompareResponseItems.length);
+
+        if (getProductCompareResponseItems.length > 0) {
+          var productCompareResponseLlmResponseText = utils.getFirstLLMResponseText(getProductCompareResponseItems);
+          var productCompareResponsePromptArgumentsObj = utils.getFirstProductCompareResponsePromptArguments(getProductCompareResponseItems);
+          var productCompareResponseLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(getProductCompareResponseItems);
+
+          // Use the actual UserMessage from productCompareResponse's prompt arguments
+          var productCompareResponseUserMessage = utils.getFirstUserPromptOnly(getProductCompareResponseItems);
+          karate.log('productCompareResponse UserMessage from trace:', productCompareResponseUserMessage ? productCompareResponseUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('productCompareResponse LLM Response:', productCompareResponseLlmResponseText ? productCompareResponseLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var productCompareResponseEvalArgs = {
+            PromptArguments: productCompareResponsePromptArgumentsObj,
+            LLMRequestFormattedPrompt: productCompareResponseLlmRequestFormatedText,
+            UserMessage: productCompareResponseUserMessage || content,  // Fallback to content if userPrompt not found
+            ResponseLLM: productCompareResponseLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var productCompareResponseEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-productcompareresponse-evaluator.feature', productCompareResponseEvalArgs);
+          karate.log('ProductCompareResponse Evaluator result - pass:', productCompareResponseEvalResult && productCompareResponseEvalResult.productCompareResponseValidationOut ? productCompareResponseEvalResult.productCompareResponseValidationOut.pass : 'undefined');
+
+          var productCompareResponseValidation = productCompareResponseEvalResult ? productCompareResponseEvalResult.productCompareResponseValidationOut : null;
+          var productCompareResponsePassed = productCompareResponseValidation && productCompareResponseValidation.pass === true;
+
+          if (!productCompareResponsePassed) {
+            testHasFailures = true;
+
+            var productCompareResponseErrorDetails = '';
+            if (productCompareResponseValidation) {
+              if (productCompareResponseValidation.scores) {
+                productCompareResponseErrorDetails += 'Scores: relevance=' + (productCompareResponseValidation.scores.relevance || 'N/A') +
+                  ', faithfulness=' + (productCompareResponseValidation.scores.faithfulness || 'N/A') +
+                  ', instructionCompliance=' + (productCompareResponseValidation.scores.instructionCompliance || 'N/A') +
+                  ', semanticCloseness=' + (productCompareResponseValidation.scores.semanticCloseness || 'N/A') + '. ';
+              }
+              // Include response analysis from AI
+              var parsedProductCompareResponseContent = productCompareResponseEvalResult.productCompareResponseEvaluatorResultOut ? productCompareResponseEvalResult.productCompareResponseEvaluatorResultOut.parsedContent : null;
+              if (parsedProductCompareResponseContent) {
+                if (parsedProductCompareResponseContent.responseAnalysis) {
+                  productCompareResponseErrorDetails += 'Response Analysis: ' + parsedProductCompareResponseContent.responseAnalysis + '. ';
+                }
+                if (parsedProductCompareResponseContent.expectedBehavior) {
+                  productCompareResponseErrorDetails += 'Expected Behavior: ' + parsedProductCompareResponseContent.expectedBehavior + '. ';
+                }
+              }
+              if (productCompareResponseValidation.issues && productCompareResponseValidation.issues.length > 0) {
+                productCompareResponseErrorDetails += 'Issues: ' + productCompareResponseValidation.issues.join('; ') + '. ';
+              }
+              if (productCompareResponseValidation.summary) {
+                productCompareResponseErrorDetails += 'Summary: ' + productCompareResponseValidation.summary;
+              }
+            } else {
+              productCompareResponseErrorDetails = 'ProductCompareResponse LLM evaluation failed or returned no validation';
+            }
+
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'productCompareResponse',
+              error: productCompareResponseErrorDetails,
+              responseLLM: productCompareResponseLlmResponseText ? (productCompareResponseLlmResponseText.length > 300 ? productCompareResponseLlmResponseText.substring(0, 300) + '...' : productCompareResponseLlmResponseText) : ''
+            });
+            karate.log('[SOFT FAIL] productCompareResponse validation:', productCompareResponseErrorDetails);
+            // Continue (soft validation mode)
+          }
+        } else {
+          karate.log('Skipping productCompareResponse validation (not present in trace data)');
+        }
+
         // ======================================================================
         // END OF VALIDATIONS - Determine final pass/fail status
         // ======================================================================

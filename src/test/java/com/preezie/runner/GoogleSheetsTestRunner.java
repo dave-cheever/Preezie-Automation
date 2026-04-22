@@ -479,6 +479,40 @@ public class GoogleSheetsTestRunner {
                     sheetsCostSummary.setSpecificProductSizeRecommendationCost(specificProductSizeRecommendationCost);
                 }
                 
+                // Add similarBaseProduct breakdown
+                CostCalculator.ValidationTypeSummary similarBaseProductData = costSummary.getGetSimilarBaseProductSummary();
+                if (similarBaseProductData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary similarBaseProductCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    similarBaseProductCost.setCount(similarBaseProductData.getCount());
+                    similarBaseProductCost.setPromptTokens(similarBaseProductData.getPromptTokens());
+                    similarBaseProductCost.setCompletionTokens(similarBaseProductData.getCompletionTokens());
+                    similarBaseProductCost.setTotalTokens(similarBaseProductData.getTotalTokens());
+                    similarBaseProductCost.setInputCost(similarBaseProductData.getInputCost().doubleValue());
+                    similarBaseProductCost.setOutputCost(similarBaseProductData.getOutputCost().doubleValue());
+                    similarBaseProductCost.setTotalCost(similarBaseProductData.getTotalCost().doubleValue());
+                    similarBaseProductCost.setAvgCostPerRequest(similarBaseProductData.getAvgCostPerRequest().doubleValue());
+                    similarBaseProductCost.setAvgPromptTokens(similarBaseProductData.getAvgPromptTokens());
+                    similarBaseProductCost.setAvgCompletionTokens(similarBaseProductData.getAvgCompletionTokens());
+                    sheetsCostSummary.setSimilarBaseProductCost(similarBaseProductCost);
+                }
+                
+                // Add productCompareResponse breakdown
+                CostCalculator.ValidationTypeSummary productCompareResponseData = costSummary.getGetProductCompareResponseSummary();
+                if (productCompareResponseData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary productCompareResponseCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    productCompareResponseCost.setCount(productCompareResponseData.getCount());
+                    productCompareResponseCost.setPromptTokens(productCompareResponseData.getPromptTokens());
+                    productCompareResponseCost.setCompletionTokens(productCompareResponseData.getCompletionTokens());
+                    productCompareResponseCost.setTotalTokens(productCompareResponseData.getTotalTokens());
+                    productCompareResponseCost.setInputCost(productCompareResponseData.getInputCost().doubleValue());
+                    productCompareResponseCost.setOutputCost(productCompareResponseData.getOutputCost().doubleValue());
+                    productCompareResponseCost.setTotalCost(productCompareResponseData.getTotalCost().doubleValue());
+                    productCompareResponseCost.setAvgCostPerRequest(productCompareResponseData.getAvgCostPerRequest().doubleValue());
+                    productCompareResponseCost.setAvgPromptTokens(productCompareResponseData.getAvgPromptTokens());
+                    productCompareResponseCost.setAvgCompletionTokens(productCompareResponseData.getAvgCompletionTokens());
+                    sheetsCostSummary.setProductCompareResponseCost(productCompareResponseCost);
+                }
+                
                 // Add detailed usage data
                 List<UsageData> usageDataList = readUsageData(usageCsvPath);
                 for (UsageData usage : usageDataList) {
