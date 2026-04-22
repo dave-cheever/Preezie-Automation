@@ -441,5 +441,53 @@
           if (obj) return obj;
         }
         return null;
+      },
+
+  // ========== findBaseProduct Prompt Arguments ==========
+  // Fields: userPrompt, productRecommendationHistory, productTitle, productId
+  getFindBaseProductPromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        userPrompt: args.userPrompt || '',
+        productRecommendationHistory: args.productRecommendationHistory || '',
+        productTitle: args.productTitle || '',
+        productId: args.productId || ''
+      };
+    },
+
+    getFirstFindBaseProductPromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getFindBaseProductPromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
+      },
+
+  // ========== findProductsToBundle Prompt Arguments ==========
+  // Fields: userPrompt, productRecommendationHistory, productTitle, productId
+  getFindProductsToBundlePromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        userPrompt: args.userPrompt || '',
+        productRecommendationHistory: args.productRecommendationHistory || '',
+        productTitle: args.productTitle || '',
+        productId: args.productId || ''
+      };
+    },
+
+    getFirstFindProductsToBundlePromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getFindProductsToBundlePromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
       }
 })

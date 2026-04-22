@@ -1220,9 +1220,157 @@ Scenario: Run all enabled tests from Google Sheets
           karate.log('Skipping productCompareResponse validation (not present in trace data)');
         }
 
-        // ======================================================================
-        // END OF VALIDATIONS - Determine final pass/fail status
-        // ======================================================================
+        // 18) Validate findBaseProduct with AI Judge (SOFT validation)
+        karate.log('Step 18: Validating findBaseProduct with AI Judge...');
+        var getFindBaseProductItems = karate.filter(traceData, function(x){ return x.agentName == 'findBaseProduct' });
+        karate.log('findBaseProduct items found:', getFindBaseProductItems.length);
+
+        if (getFindBaseProductItems.length > 0) {
+          var findBaseProductLlmResponseText = utils.getFirstLLMResponseText(getFindBaseProductItems);
+          var findBaseProductPromptArgumentsObj = utils.getFirstFindBaseProductPromptArguments(getFindBaseProductItems);
+          var findBaseProductLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(getFindBaseProductItems);
+
+          // Use the actual UserMessage from findBaseProduct's prompt arguments
+          var findBaseProductUserMessage = utils.getFirstUserPromptOnly(getFindBaseProductItems);
+          karate.log('findBaseProduct UserMessage from trace:', findBaseProductUserMessage ? findBaseProductUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('findBaseProduct LLM Response:', findBaseProductLlmResponseText ? findBaseProductLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var findBaseProductEvalArgs = {
+            PromptArguments: findBaseProductPromptArgumentsObj,
+            LLMRequestFormattedPrompt: findBaseProductLlmRequestFormatedText,
+            UserMessage: findBaseProductUserMessage || content,  // Fallback to content if userPrompt not found
+            ResponseLLM: findBaseProductLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var findBaseProductEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-findbaseproduct-evaluator.feature', findBaseProductEvalArgs);
+          karate.log('FindBaseProduct Evaluator result - pass:', findBaseProductEvalResult && findBaseProductEvalResult.findBaseProductValidationOut ? findBaseProductEvalResult.findBaseProductValidationOut.pass : 'undefined');
+
+          var findBaseProductValidation = findBaseProductEvalResult ? findBaseProductEvalResult.findBaseProductValidationOut : null;
+          var findBaseProductPassed = findBaseProductValidation && findBaseProductValidation.pass === true;
+
+          if (!findBaseProductPassed) {
+            testHasFailures = true;
+
+            var findBaseProductErrorDetails = '';
+            if (findBaseProductValidation) {
+              if (findBaseProductValidation.scores) {
+                findBaseProductErrorDetails += 'Scores: relevance=' + (findBaseProductValidation.scores.relevance || 'N/A') +
+                  ', faithfulness=' + (findBaseProductValidation.scores.faithfulness || 'N/A') +
+                  ', instructionCompliance=' + (findBaseProductValidation.scores.instructionCompliance || 'N/A') +
+                  ', semanticCloseness=' + (findBaseProductValidation.scores.semanticCloseness || 'N/A') + '. ';
+              }
+              // Include response analysis from AI
+              var parsedFindBaseProductContent = findBaseProductEvalResult.findBaseProductEvaluatorResultOut ? findBaseProductEvalResult.findBaseProductEvaluatorResultOut.parsedContent : null;
+              if (parsedFindBaseProductContent) {
+                if (parsedFindBaseProductContent.responseAnalysis) {
+                  findBaseProductErrorDetails += 'Response Analysis: ' + parsedFindBaseProductContent.responseAnalysis + '. ';
+                }
+                if (parsedFindBaseProductContent.expectedBehavior) {
+                  findBaseProductErrorDetails += 'Expected Behavior: ' + parsedFindBaseProductContent.expectedBehavior + '. ';
+                }
+              }
+              if (findBaseProductValidation.issues && findBaseProductValidation.issues.length > 0) {
+                findBaseProductErrorDetails += 'Issues: ' + findBaseProductValidation.issues.join('; ') + '. ';
+              }
+              if (findBaseProductValidation.summary) {
+                findBaseProductErrorDetails += 'Summary: ' + findBaseProductValidation.summary;
+              }
+            } else {
+              findBaseProductErrorDetails = 'FindBaseProduct LLM evaluation failed or returned no validation';
+            }
+
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'findBaseProduct',
+              error: findBaseProductErrorDetails,
+              responseLLM: findBaseProductLlmResponseText ? (findBaseProductLlmResponseText.length > 300 ? findBaseProductLlmResponseText.substring(0, 300) + '...' : findBaseProductLlmResponseText) : ''
+            });
+            karate.log('[SOFT FAIL] findBaseProduct validation:', findBaseProductErrorDetails);
+            // Continue (soft validation mode)
+          }
+        } else {
+          karate.log('Skipping findBaseProduct validation (not present in trace data)');
+        }
+
+        // 19) Validate findProductsToBundle with AI Judge (SOFT validation)
+        karate.log('Step 19: Validating findProductsToBundle with AI Judge...');
+        var getFindProductsToBundleItems = karate.filter(traceData, function(x){ return x.agentName == 'findProductsToBundle' });
+        karate.log('findProductsToBundle items found:', getFindProductsToBundleItems.length);
+
+        if (getFindProductsToBundleItems.length > 0) {
+          var findProductsToBundleLlmResponseText = utils.getFirstLLMResponseText(getFindProductsToBundleItems);
+          var findProductsToBundlePromptArgumentsObj = utils.getFirstFindProductsToBundlePromptArguments(getFindProductsToBundleItems);
+          var findProductsToBundleLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(getFindProductsToBundleItems);
+
+          var findProductsToBundleUserMessage = utils.getFirstUserPromptOnly(getFindProductsToBundleItems);
+          karate.log('findProductsToBundle UserMessage from trace:', findProductsToBundleUserMessage ? findProductsToBundleUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('findProductsToBundle LLM Response:', findProductsToBundleLlmResponseText ? findProductsToBundleLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var findProductsToBundleEvalArgs = {
+            PromptArguments: findProductsToBundlePromptArgumentsObj,
+            LLMRequestFormattedPrompt: findProductsToBundleLlmRequestFormatedText,
+            UserMessage: findProductsToBundleUserMessage || content,
+            ResponseLLM: findProductsToBundleLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var findProductsToBundleEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-findproductstobundle-evaluator.feature', findProductsToBundleEvalArgs);
+          karate.log('FindProductsToBundle Evaluator result - pass:', findProductsToBundleEvalResult && findProductsToBundleEvalResult.findProductsToBundleValidationOut ? findProductsToBundleEvalResult.findProductsToBundleValidationOut.pass : 'undefined');
+
+          var findProductsToBundleValidation = findProductsToBundleEvalResult ? findProductsToBundleEvalResult.findProductsToBundleValidationOut : null;
+          var findProductsToBundlePassed = findProductsToBundleValidation && findProductsToBundleValidation.pass === true;
+
+          if (!findProductsToBundlePassed) {
+            testHasFailures = true;
+
+            var findProductsToBundleErrorDetails = '';
+            if (findProductsToBundleValidation) {
+              if (findProductsToBundleValidation.scores) {
+                findProductsToBundleErrorDetails += 'Scores: relevance=' + (findProductsToBundleValidation.scores.relevance || 'N/A') +
+                  ', faithfulness=' + (findProductsToBundleValidation.scores.faithfulness || 'N/A') +
+                  ', instructionCompliance=' + (findProductsToBundleValidation.scores.instructionCompliance || 'N/A') +
+                  ', semanticCloseness=' + (findProductsToBundleValidation.scores.semanticCloseness || 'N/A') + '. ';
+              }
+              var parsedFindProductsToBundleContent = findProductsToBundleEvalResult.findProductsToBundleEvaluatorResultOut ? findProductsToBundleEvalResult.findProductsToBundleEvaluatorResultOut.parsedContent : null;
+              if (parsedFindProductsToBundleContent) {
+                if (parsedFindProductsToBundleContent.responseAnalysis) {
+                  findProductsToBundleErrorDetails += 'Response Analysis: ' + parsedFindProductsToBundleContent.responseAnalysis + '. ';
+                }
+                if (parsedFindProductsToBundleContent.expectedBehavior) {
+                  findProductsToBundleErrorDetails += 'Expected Behavior: ' + parsedFindProductsToBundleContent.expectedBehavior + '. ';
+                }
+              }
+              if (findProductsToBundleValidation.issues && findProductsToBundleValidation.issues.length > 0) {
+                findProductsToBundleErrorDetails += 'Issues: ' + findProductsToBundleValidation.issues.join('; ') + '. ';
+              }
+              if (findProductsToBundleValidation.summary) {
+                findProductsToBundleErrorDetails += 'Summary: ' + findProductsToBundleValidation.summary;
+              }
+            } else {
+              findProductsToBundleErrorDetails = 'FindProductsToBundle LLM evaluation failed or returned no validation';
+            }
+
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'findProductsToBundle',
+              error: findProductsToBundleErrorDetails,
+              responseLLM: findProductsToBundleLlmResponseText ? (findProductsToBundleLlmResponseText.length > 300 ? findProductsToBundleLlmResponseText.substring(0, 300) + '...' : findProductsToBundleLlmResponseText) : ''
+            });
+            karate.log('[SOFT FAIL] findProductsToBundle validation:', findProductsToBundleErrorDetails);
+            // Continue (soft validation mode)
+          }
+        } else {
+          karate.log('Skipping findProductsToBundle validation (not present in trace data)');
+        }
 
         if (testHasFailures) {
           results.failed++;
