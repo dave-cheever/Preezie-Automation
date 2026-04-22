@@ -393,5 +393,53 @@
           if (obj) return obj;
         }
         return null;
+      },
+
+  // ========== similarBaseProduct Prompt Arguments ==========
+  // Fields: userPrompt, productRecommendationHistory, productTitle, productId
+  getSimilarBaseProductPromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        userPrompt: args.userPrompt || '',
+        productRecommendationHistory: args.productRecommendationHistory || '',
+        productTitle: args.productTitle || '',
+        productId: args.productId || ''
+      };
+    },
+
+    getFirstSimilarBaseProductPromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getSimilarBaseProductPromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
+      },
+
+  // ========== productCompareResponse Prompt Arguments ==========
+  // Fields: userPrompt, productRecommendationHistory, productTitle, productId
+  getProductCompareResponsePromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        userPrompt: args.userPrompt || '',
+        productRecommendationHistory: args.productRecommendationHistory || '',
+        productTitle: args.productTitle || '',
+        productId: args.productId || ''
+      };
+    },
+
+    getFirstProductCompareResponsePromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getProductCompareResponsePromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
       }
 })
