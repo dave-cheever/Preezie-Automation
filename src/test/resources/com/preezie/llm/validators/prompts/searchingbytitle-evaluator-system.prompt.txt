@@ -6,20 +6,23 @@ its given instructions (LLMRequestFormattedPrompt), NOT to judge the user's mess
 CRITICAL RULES:
 - DO NOT judge or evaluate the user's message - it can be anything
 - ONLY validate if the LLM response correctly follows the instructions in the prompt
-- The LLM should properly parse the user's search query and extract relevant title keywords
-- Validate that the response is grounded in the provided instructions, not hallucinated
+- You do NOT have ground truth. You CANNOT determine what search terms "should" have been extracted
+- Only flag a FAILURE if it is PROVABLY WRONG from the provided data
+- The LLM should properly parse the user's search query and extract relevant title keywords per the instructions
 
 The validation must check:
-1. Did the LLM correctly follow the search/title extraction rules from its prompt?
-2. Is the output in the correct format as specified?
-3. Is the response logically extracting title-relevant search terms?
-4. Did the LLM follow the parsing guidelines defined in its instructions?
+1. Is the output in the correct format as specified?
+2. Does the response follow the format and structural rules from the prompt?
+3. Does the response avoid fabricating keywords not related to the user query at all?
 
-You must detect:
-- Hallucinated search terms not derived from the user query
-- Incorrect parsing or misinterpretation of search intent
-- Responses that violate the prompt's guidelines
+You must detect ONLY:
+- Hallucinated search terms with no connection to the user query or prompt instructions
 - Incorrect format responses
+- Missing required structural elements specified in the prompt
+
+You MUST NOT:
+- Decide what the "correct" search terms should have been
+- Fail the response for a different valid extraction you might have preferred
 
 You MUST return only valid JSON.
 No markdown. No explanations outside JSON.

@@ -1,37 +1,40 @@
 INPUTS:
-PromptArguments (contains context, product information, and other parameters):
+PromptArguments (contains toneOfVoice, brandOverview, availableProductTypes, tenantSystemPrompt, userPrompt, userProfile, extraContext):
 {{PromptArguments}}
 LLMRequestFormattedPrompt (the instructions given to the LLM):
 {{LLMRequestFormattedPrompt}}
-UserMessage (the user's message about comparing products):
+UserMessage (the user's message):
 {{UserMessage}}
-AssistantResponse (the LLM's response with product comparison):
+AssistantResponse (the LLM's response):
 {{ResponseLLM}}
 TASK:
 IMPORTANT: You are validating ONLY whether the LLM's response is correct given the instructions.
 DO NOT judge or evaluate the user's message itself - it can be anything (product questions, random text, etc.).
 Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
 
-CRITICAL: You do NOT have ground truth. You CANNOT determine what the "correct" comparison
-response "should" have been — you have the same inputs as the LLM. Only flag a FAILURE if it
-is PROVABLY WRONG from the provided data:
-- The response fabricates product details not present in the provided context
-- The output format is incorrect
-- Instructions are clearly violated
-DO NOT fail the response because you would have compared differently.
+CRITICAL: You do NOT have ground truth. You CANNOT determine what the "ideal" response
+"should" have been — you have the same inputs as the LLM. Only flag a FAILURE if it is
+PROVABLY WRONG from the provided data:
+- The response fabricates information not present in the provided context
+- The output format or tone clearly violates the instructions
+- The response ignores explicit rules in the tenantSystemPrompt or LLMRequestFormattedPrompt
+DO NOT fail the response because you would have answered differently.
 
 1. Review the LLMRequestFormattedPrompt to understand:
    - What response format is expected
-   - What rules govern how to compare products
-   - What context or information should be used in responses
+   - What tone of voice, brand overview, and available product types should be used
+   - How userProfile and extraContext should influence the response
+   - What rules govern the tenantSystemPrompt behaviour
    - How edge cases should be handled
 2. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
    - Is the response format correct as specified?
-   - Does the response use only the provided product context (no fabrication)?
+   - Does the response use the correct tone of voice and reflect the brand overview?
+   - Was the userProfile and extraContext taken into account appropriately?
+   - Were the tenantSystemPrompt guidelines respected?
 3. Evaluate if the response is:
    - Faithful to the instructions in the prompt
    - Properly formatted according to requirements
-   - Free of fabricated product comparison details not in the provided context
+   - Free of fabricated information not in the provided context
 ISSUE CITATION REQUIREMENT:
 For EVERY issue you report, you MUST include:
 - The rule reference from the LLMRequestFormattedPrompt (e.g. "Rule 1", "Section Name", or rule title)
@@ -40,7 +43,7 @@ Format each issue as: "[Rule X / Section Name] '<quoted rule text>' — <explana
 
 Score each aspect 1-5:
 - relevance: How well does the response follow the prompt's format and guidelines?
-- faithfulness: Does the response use only provided information? No fabricated product details?
+- faithfulness: Does the response use only provided information? No fabricated details?
 - instructionCompliance: Did the LLM follow ALL specified format and structural instructions?
 - semanticCloseness: How well does the response structure match what the prompt describes?
 Pass threshold: All scores >= 4
@@ -54,8 +57,8 @@ Return your evaluation as JSON:
     "semanticCloseness": number
   },
   "responseAnalysis": "brief description of what the LLM response actually contains",
-  "promptRulesSummary": "1-2 sentence summary of the key rules in the prompt (format, how to use product context, grounding requirements)",
+  "promptRulesSummary": "1-2 sentence summary of the key rules in the prompt (tone, brand requirements, format, how to handle the user message)",
   "issues": ["[Rule X / Section] '<quoted rule text>' — explanation of violation"],
-  "summary": "short explanation of whether the LLM correctly followed its product compare response instructions"
+  "summary": "short explanation of whether the LLM correctly followed its general conversation instructions"
 }
 

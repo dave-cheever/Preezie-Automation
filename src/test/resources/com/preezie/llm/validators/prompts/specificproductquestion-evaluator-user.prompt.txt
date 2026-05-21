@@ -18,25 +18,38 @@ IMPORTANT: You are validating ONLY whether the LLM's response is correct given t
 DO NOT judge or evaluate the user's message itself - it can be anything (product questions, random text, etc.).
 Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
 
+CRITICAL: You do NOT have ground truth. You CANNOT determine what the "ideal" response
+"should" have been — you have the same inputs as the LLM. Only flag a FAILURE if it is
+PROVABLY WRONG from the provided data:
+- The response fabricates information not present in the provided context
+- The output format is incorrect
+- Instructions are clearly violated
+DO NOT fail the response because you would have answered differently.
+
 1. Review the LLMRequestFormattedPrompt to understand:
    - What response format is expected
    - What rules govern how to answer product questions
    - What context or information should be used in responses
    - How edge cases should be handled
 2. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
-   - Did the LLM correctly apply the response rules from the prompt?
    - Is the response format correct as specified?
-   - Does the response properly use the available context/product information?
+   - Does the response use only the available context/product information (no fabrication)?
 3. Evaluate if the response is:
    - Faithful to the instructions in the prompt
    - Properly formatted according to requirements
-   - Appropriate given the context provided
+   - Free of fabricated product details not in the provided context
+
+ISSUE CITATION REQUIREMENT:
+For EVERY issue you report, you MUST include:
+- The rule reference from the LLMRequestFormattedPrompt (e.g. "Rule 1", "Section Name", or rule title)
+- A short verbatim quote of the violated rule text
+Format each issue as: "[Rule X / Section Name] '<quoted rule text>' — <explanation of violation>"
 
 Score each aspect 0-10:
-- relevance: How well does the response address what was asked given the instructions?
-- faithfulness: Does the response follow the prompt's rules and use provided information correctly?
-- instructionCompliance: Did the LLM follow ALL specified instructions in the prompt?
-- semanticCloseness: How well does the response semantically match expected behavior?
+- relevance: How well does the response follow the prompt's format and guidelines?
+- faithfulness: Does the response use only provided information? No fabricated details?
+- instructionCompliance: Did the LLM follow ALL specified format and structural instructions?
+- semanticCloseness: How well does the response structure match what the prompt describes?
 
 Pass threshold: All scores >= 7 AND instructionCompliance >= 8
 
@@ -49,9 +62,9 @@ Return your evaluation as JSON:
     "instructionCompliance": number,
     "semanticCloseness": number
   },
-  "responseAnalysis": "brief analysis of what the LLM response contains",
-  "expectedBehavior": "what the prompt rules dictate the response should be",
-  "issues": [string],
+  "responseAnalysis": "brief description of what the LLM response actually contains",
+  "promptRulesSummary": "1-2 sentence summary of the key response rules in the prompt (format, grounding requirements, how to handle the question)",
+  "issues": ["[Rule X / Section] '<quoted rule text>' — explanation of violation"],
   "summary": "short explanation of whether the LLM correctly followed its response instructions"
 }
 

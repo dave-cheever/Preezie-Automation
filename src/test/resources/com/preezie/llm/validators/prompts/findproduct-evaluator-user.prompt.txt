@@ -14,29 +14,46 @@ AssistantResponse (Product Search Query Result):
 
 TASK:
 
-IMPORTANT: You are validating ONLY whether the LLM's response is correct given the instructions.
+IMPORTANT: You are validating ONLY whether the LLM's response correctly follows the LLMRequestFormattedPrompt.
 DO NOT judge or evaluate the user's message itself - it can be anything.
-Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
 
-1. Review the LLMRequestFormattedPrompt to understand:
-   - The expected output format for search queries
-   - The rules for extracting search terms and filters
-2. Review PromptArguments to know the valid options:
-   - genders: the available gender filter options
-   - dynamicVariantFields: the available product attribute filters
-3. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
-   - Did the LLM correctly apply the extraction rules from the prompt?
-   - Are returned filters using only valid values from genders/dynamicVariantFields?
-4. Validate that the AssistantResponse:
-   - Follows the output format specified in the prompt
-   - Uses only valid filter values from the available options
-   - Correctly applies the extraction logic per the prompt
+CRITICAL — UNDERSTAND WHAT EACH INPUT CONTROLS:
+- `genders`: controls ONLY the allowed values for the `Gender` field. Nothing else.
+- `dynamicVariantFields`: these are store-specific structured variant dimension labels (e.g. Size options).
+  They do NOT control what goes in `AdditionalKeywords`.
+  `AdditionalKeywords` is a FREE-TEXT search keyword enhancement field. The LLM may include any explicit
+  attribute mentioned in the user query (fabric, material, sub-type, style, sub-type) that is not already
+  captured by other fields (RawColor, PrimaryColor, DisplaySize, price, sale, newarrival, gender, brand).
+  The rules for AdditionalKeywords are defined in the ADDITIONALKEYWORDS SPEC section of the LLMRequestFormattedPrompt.
+
+CRITICAL — ONLY FLAG FAILURES THAT ARE PROVABLY WRONG:
+You CANNOT determine what search terms "should" have been extracted.
+Only flag a FAILURE if a specific, named rule in the LLMRequestFormattedPrompt is clearly violated.
+DO NOT fail the response because you would have extracted different valid terms.
+
+STEPS:
+1. Read the LLMRequestFormattedPrompt fully — understand the GENERAL RULES, ADDITIONALKEYWORDS SPEC, and JSON schema.
+2. Check the `Gender` field: is its value in the `genders` list from PromptArguments? If not, flag it.
+3. Check `AdditionalKeywords` against the ADDITIONALKEYWORDS SPEC rules (not dynamicVariantFields):
+   - Does it contain generic category/type terms? (Rule 2 + ADDITIONALKEYWORDS SPEC forbid this)
+   - Does it contain values already represented by RawColor, PrimaryColor, price, sale, newarrival, gender, brand? (forbidden by ADDITIONALKEYWORDS SPEC)
+   - Are there more than 3 variant strings? (ADDITIONALKEYWORDS SPEC limit)
+   - Is "preeziepriority" included as a separate variant string? (Rule 13 requires this)
+4. Check all output values are lowercased (Rule 8 requires this).
+5. Check the JSON field order and structure matches the schema exactly.
+6. Do NOT flag linen, fabric, material, or other explicit query attributes as violations — these are valid AdditionalKeywords.
+
+ISSUE CITATION REQUIREMENT:
+For EVERY issue you report, you MUST include:
+- The rule reference (e.g. "Rule 2", "Rule 8", "ADDITIONALKEYWORDS SPEC", "Rule 13")
+- A short verbatim quote of the violated rule text from LLMRequestFormattedPrompt
+Format each issue as: "[Rule X / Section Name] '<quoted rule text>' — <explanation of violation>"
 
 SCORING RULES (0–5):
-- relevance: the response correctly addresses the extraction task as defined in the prompt
-- faithfulness: no hallucinated filters or values not in the available options
-- instructionCompliance: follows the exact rules and format defined in LLMRequestFormattedPrompt
-- semanticCloseness: the extraction matches what the prompt instructions dictate
+- relevance: the response addresses the extraction task for the user query
+- faithfulness: output only contains values/fields grounded in the prompt rules and user query
+- instructionCompliance: accurately follows every rule in the LLMRequestFormattedPrompt
+- semanticCloseness: the response structure and format match the specified JSON schema
 
 PASS CONDITIONS:
 - relevance >= 4
@@ -54,9 +71,9 @@ RETURN ONLY THIS JSON STRUCTURE:
     "instructionCompliance": number,
     "semanticCloseness": number
   },
-  "extractedQuery": "summary of search query/filters from AssistantResponse",
-  "expectedQuery": "what the prompt rules dictate should be extracted",
-  "issues": [string],
+  "extractedQuery": "summary of what the LLM extracted: color, price, size, keywords, etc.",
+  "promptRulesSummary": "1-2 sentence factual summary of the key extraction rules from LLMRequestFormattedPrompt (what fields to extract, what AdditionalKeywords rules apply, lowercase requirement, preeziepriority rule)",
+  "issues": ["[Rule X / Section] '<quoted rule>' — explanation of how the response violated it"],
   "summary": "short explanation of whether the LLM correctly followed its extraction instructions"
 }
 

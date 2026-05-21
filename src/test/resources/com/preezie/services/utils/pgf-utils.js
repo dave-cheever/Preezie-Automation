@@ -489,5 +489,132 @@
           if (obj) return obj;
         }
         return null;
+      },
+
+  // ========== generalConversation Prompt Arguments ==========
+  // Fields: toneOfVoice, brandOverview, availableProductTypes, tenantSystemPrompt, userPrompt, userProfile, extraContext
+  getGeneralConversationPromptArguments: function(item) {
+      if (!item || !item.promptContent || !item.promptContent.arguments) return null;
+      var args = item.promptContent.arguments;
+      return {
+        toneOfVoice: args.toneOfVoice || '',
+        brandOverview: args.brandOverview || '',
+        availableProductTypes: args.availableProductTypes || '',
+        tenantSystemPrompt: args.tenantSystemPrompt || '',
+        userPrompt: args.userPrompt || '',
+        userProfile: args.userProfile || '',
+        extraContext: args.extraContext || ''
+      };
+    },
+
+    getFirstGeneralConversationPromptArguments: function(listOrItem) {
+        var arr = listOrItem;
+        if (!arr) return null;
+        if (!Array.isArray(arr)) arr = [arr];
+        for (var i = 0; i < arr.length; i++) {
+          var obj = this.getGeneralConversationPromptArguments(arr[i]);
+          if (obj) return obj;
+        }
+        return null;
+      },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AI JUDGE REPORT FORMATTER
+  // Builds a structured multi-line report string for a failed agent validation.
+  //
+  // Parameters:
+  //   validation    - the validationOut object (has .scores, .issues, .summary)
+  //   parsedContent - the evaluatorResultOut.parsedContent from the AI judge
+  //   agentName     - string label e.g. 'getIntent' for fallback messages
+  // ═══════════════════════════════════════════════════════════════════════════
+  buildReport: function(validation, parsedContent, agentName) {
+    var lines = [];
+    var name = agentName || 'AI Judge';
+
+    if (!validation) {
+      lines.push('  ' + name + ' evaluation failed or returned no validation result.');
+      return lines.join('\n');
+    }
+
+    // Scores
+    if (validation.scores) {
+      var s = validation.scores;
+      lines.push('  Scores:');
+      lines.push('    relevance:             ' + (s.relevance !== undefined && s.relevance !== null ? s.relevance : 'N/A') + '/5');
+      lines.push('    faithfulness:          ' + (s.faithfulness !== undefined && s.faithfulness !== null ? s.faithfulness : 'N/A') + '/5');
+      lines.push('    instructionCompliance: ' + (s.instructionCompliance !== undefined && s.instructionCompliance !== null ? s.instructionCompliance : 'N/A') + '/5');
+      lines.push('    semanticCloseness:     ' + (s.semanticCloseness !== undefined && s.semanticCloseness !== null ? s.semanticCloseness : 'N/A') + '/5');
+    }
+
+    if (parsedContent) {
+      // Response Analysis - what the LLM response actually contains
+      if (parsedContent.responseAnalysis) {
+        lines.push('  Response Analysis:');
+        lines.push('    ' + parsedContent.responseAnalysis);
       }
+
+      // Returned Value - classification agents
+      var returnedValue = parsedContent.classifiedIntent
+        || parsedContent.classifiedCategories
+        || parsedContent.classifiedSubIntent
+        || parsedContent.returnedValue;
+      if (returnedValue) {
+        lines.push('  Returned Value:');
+        lines.push('    ' + returnedValue);
+      }
+
+      // Extracted - extraction agents
+      var extracted = parsedContent.extractedQuery
+        || parsedContent.extractedInfo
+        || parsedContent.extractedTerms;
+      if (extracted) {
+        lines.push('  Extracted:');
+        lines.push('    ' + extracted);
+      }
+
+      // Expected Behavior - summary of what the prompt rules required (derived from LLMRequestFormattedPrompt, not hallucinated)
+      if (parsedContent.promptRulesSummary) {
+        lines.push('  Expected Behavior (from prompt rules):');
+        lines.push('    ' + parsedContent.promptRulesSummary);
+      }
+
+      // Valid Options - classification agents (factual list from the prompt)
+      if (parsedContent.validOptionsFromPrompt) {
+        lines.push('  Valid Options From Prompt:');
+        lines.push('    ' + parsedContent.validOptionsFromPrompt);
+      }
+
+      // Issues
+      var pcIssues = parsedContent.issues && parsedContent.issues.length > 0 ? parsedContent.issues : null;
+      var valIssues = validation.issues && validation.issues.length > 0 ? validation.issues : null;
+      var issues = pcIssues || valIssues;
+      if (issues && issues.length > 0) {
+        lines.push('  Issues:');
+        for (var i = 0; i < issues.length; i++) {
+          lines.push('    - ' + issues[i]);
+        }
+      }
+
+      // Summary
+      var summary = parsedContent.summary || validation.summary;
+      if (summary) {
+        lines.push('  Summary:');
+        lines.push('    ' + summary);
+      }
+    } else {
+      // No parsedContent - use validation fields only
+      if (validation.issues && validation.issues.length > 0) {
+        lines.push('  Issues:');
+        for (var j = 0; j < validation.issues.length; j++) {
+          lines.push('    - ' + validation.issues[j]);
+        }
+      }
+      if (validation.summary) {
+        lines.push('  Summary:');
+        lines.push('    ' + validation.summary);
+      }
+    }
+
+    return lines.join('\n');
+  }
 })

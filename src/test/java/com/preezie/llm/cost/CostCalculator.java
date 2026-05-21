@@ -9,7 +9,7 @@ public class CostCalculator {
     public CostSummary calculateSummary(List<UsageData> usageDataList) {
         if (usageDataList == null || usageDataList.isEmpty()) {
             return new CostSummary(0, 0, 0, 0, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 
-                    new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary());
+                    new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary(), new ValidationTypeSummary());
         }
 
         int totalRequests = usageDataList.size();
@@ -36,6 +36,7 @@ public class CostCalculator {
         ValidationTypeSummary productCompareResponseSummary = new ValidationTypeSummary();
         ValidationTypeSummary findBaseProductSummary = new ValidationTypeSummary();
         ValidationTypeSummary findProductsToBundleSummary = new ValidationTypeSummary();
+        ValidationTypeSummary generalConversationSummary = new ValidationTypeSummary();
 
         for (UsageData data : usageDataList) {
             totalPromptTokens += data.getPromptTokens();
@@ -77,6 +78,8 @@ public class CostCalculator {
                     findBaseProductSummary.addUsage(data);
                 } else if (content.contains("[findProductsToBundle]")) {
                     findProductsToBundleSummary.addUsage(data);
+                } else if (content.contains("[generalConversation]")) {
+                    generalConversationSummary.addUsage(data);
                 } else if (content.contains("[specificProductQuestion]")) {
                     specificProductQuestionSummary.addUsage(data);
                 }
@@ -106,7 +109,8 @@ public class CostCalculator {
                 similarBaseProductSummary,
                 productCompareResponseSummary,
                 findBaseProductSummary,
-                findProductsToBundleSummary
+                findProductsToBundleSummary,
+                generalConversationSummary
         );
     }
 
@@ -169,6 +173,7 @@ public class CostCalculator {
         private final ValidationTypeSummary getProductCompareResponseSummary;
         private final ValidationTypeSummary getFindBaseProductSummary;
         private final ValidationTypeSummary getFindProductsToBundleSummary;
+        private final ValidationTypeSummary getGeneralConversationSummary;
 
         public CostSummary(int totalRequests, int totalPromptTokens, int totalCompletionTokens,
                            int totalTokens, BigDecimal totalInputCost, BigDecimal totalOutputCost,
@@ -182,7 +187,8 @@ public class CostCalculator {
                             ValidationTypeSummary getSimilarBaseProductSummary,
                             ValidationTypeSummary getProductCompareResponseSummary,
                             ValidationTypeSummary getFindBaseProductSummary,
-                            ValidationTypeSummary getFindProductsToBundleSummary) {
+                            ValidationTypeSummary getFindProductsToBundleSummary,
+                            ValidationTypeSummary getGeneralConversationSummary) {
             this.totalRequests = totalRequests;
             this.totalPromptTokens = totalPromptTokens;
             this.totalCompletionTokens = totalCompletionTokens;
@@ -206,6 +212,7 @@ public class CostCalculator {
             this.getProductCompareResponseSummary = getProductCompareResponseSummary;
             this.getFindBaseProductSummary = getFindBaseProductSummary;
             this.getFindProductsToBundleSummary = getFindProductsToBundleSummary;
+            this.getGeneralConversationSummary = getGeneralConversationSummary;
         }
 
         public BigDecimal getAverageCostPerRequest() {
@@ -246,6 +253,7 @@ public class CostCalculator {
         public ValidationTypeSummary getGetProductCompareResponseSummary() { return getProductCompareResponseSummary; }
         public ValidationTypeSummary getGetFindBaseProductSummary() { return getFindBaseProductSummary; }
         public ValidationTypeSummary getGetFindProductsToBundleSummary() { return getFindProductsToBundleSummary; }
+        public ValidationTypeSummary getGetGeneralConversationSummary() { return getGeneralConversationSummary; }
         
         // Double getters for easier use
         public double getTotalInputCostDouble() { return totalInputCost.doubleValue(); }
@@ -738,6 +746,36 @@ public class CostCalculator {
                     getFindProductsToBundleSummary.getAvgPromptTokens(),
                     getFindProductsToBundleSummary.getAvgCompletionTokens()));
 
+            // generalConversation Section
+            sb.append("""
+                    
+                    ═══════════════════════════════════════════════════════════════
+                                    AI COST SUMMARY - generalConversation
+                    ═══════════════════════════════════════════════════════════════
+                    """);
+            sb.append(String.format("""
+                    Evaluations:              %d
+                    Prompt Tokens:            %,d
+                    Completion Tokens:        %,d
+                    Total Tokens:             %,d
+                    Input Cost:               $%.6f
+                    Output Cost:              $%.6f
+                    Total Cost:               $%.6f
+                    Avg Cost/Evaluation:      $%.6f
+                    Avg Prompt Tokens:        %.2f
+                    Avg Completion Tokens:    %.2f
+                    """,
+                    getGeneralConversationSummary.getCount(),
+                    getGeneralConversationSummary.getPromptTokens(),
+                    getGeneralConversationSummary.getCompletionTokens(),
+                    getGeneralConversationSummary.getTotalTokens(),
+                    getGeneralConversationSummary.getInputCost(),
+                    getGeneralConversationSummary.getOutputCost(),
+                    getGeneralConversationSummary.getTotalCost(),
+                    getGeneralConversationSummary.getAvgCostPerRequest(),
+                    getGeneralConversationSummary.getAvgPromptTokens(),
+                    getGeneralConversationSummary.getAvgCompletionTokens()));
+
             // Combined Total Section
             sb.append("""
                     
@@ -763,6 +801,7 @@ public class CostCalculator {
                       - productCompareResponse: %d
                       - findBaseProduct:      %d
                       - findProductsToBundle: %d
+                      - generalConversation:  %d
                     ───────────────────────────────────────────────────────────────
                     Total Prompt Tokens:      %,d
                     Total Completion Tokens:  %,d
@@ -777,7 +816,7 @@ public class CostCalculator {
                     Avg Completion Tokens:    %.2f
                     ═══════════════════════════════════════════════════════════════
                     """,
-                    totalRequests, getIntentSummarySummary.getCount(), getIntentSummary.getCount(), getCategoriesSummary.getCount(), getFindProductSummary.getCount(), getSmartResponseSummary.getCount(), getGetUserInformationSummary.getCount(), getSpecificQuestionSubIntentSummary.getCount(), getMultiProductQuestionSubIntentSummary.getCount(), getSearchingByTitleSummary.getCount(), getSpecificProductQuestionSummary.getCount(), getSpecificProductQuestionResponseSummary.getCount(), getSpecificProductSizeRecommendationSummary.getCount(), getSimilarBaseProductSummary.getCount(), getProductCompareResponseSummary.getCount(), getFindBaseProductSummary.getCount(), getFindProductsToBundleSummary.getCount(),
+                    totalRequests, getIntentSummarySummary.getCount(), getIntentSummary.getCount(), getCategoriesSummary.getCount(), getFindProductSummary.getCount(), getSmartResponseSummary.getCount(), getGetUserInformationSummary.getCount(), getSpecificQuestionSubIntentSummary.getCount(), getMultiProductQuestionSubIntentSummary.getCount(), getSearchingByTitleSummary.getCount(), getSpecificProductQuestionSummary.getCount(), getSpecificProductQuestionResponseSummary.getCount(), getSpecificProductSizeRecommendationSummary.getCount(), getSimilarBaseProductSummary.getCount(), getProductCompareResponseSummary.getCount(), getFindBaseProductSummary.getCount(), getFindProductsToBundleSummary.getCount(), getGeneralConversationSummary.getCount(),
                     totalPromptTokens, totalCompletionTokens, totalTokens,
                     totalInputCost, totalOutputCost, totalCost,
                     getAverageCostPerRequest(), getAveragePromptTokens(), getAverageCompletionTokens()));

@@ -18,24 +18,37 @@ IMPORTANT: You are validating ONLY whether the LLM's response is correct given t
 DO NOT judge or evaluate the user's message itself - it can be anything (product search, random text, etc.).
 Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
 
+CRITICAL: You do NOT have ground truth. You CANNOT determine which sub-intent "should" have
+been chosen — you have the same inputs as the LLM. Only flag a FAILURE if it is PROVABLY
+WRONG from the provided data:
+- The returned sub-intent is NOT in the defined sub-intents in the prompt (and is not 'false')
+- The output format is incorrect
+- Instructions are clearly violated
+DO NOT fail the response because you would have chosen a different valid sub-intent.
+
 1. Review the LLMRequestFormattedPrompt to understand:
    - What sub-intent categories are defined/available
    - What the classification rules and criteria are
    - When to return 'false' or a specific sub-intent
 2. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
-   - Did the LLM correctly apply the classification rules from the prompt?
+   - Is the returned value one of the defined sub-intents, or 'false'?
    - If the user's message doesn't match any defined sub-intent, returning 'false' is CORRECT
-   - The LLM should only return a sub-intent if the message clearly matches the defined categories
 3. Validate that the AssistantResponse:
    - Follows the output format specified in the prompt
-   - Correctly applies the classification logic
+   - Returns a value from the defined sub-intents OR 'false' (these are the ONLY valid states)
    - Returns 'false' when appropriate (message doesn't match defined sub-intents)
 
+ISSUE CITATION REQUIREMENT:
+For EVERY issue you report, you MUST include:
+- The rule reference from the LLMRequestFormattedPrompt (e.g. "Rule 1", "Section Name", or rule title)
+- A short verbatim quote of the violated rule text
+Format each issue as: "[Rule X / Section Name] '<quoted rule text>' — <explanation of violation>"
+
 SCORING RULES (0–5):
-- relevance: the response correctly addresses the classification task as defined in the prompt
-- faithfulness: no hallucinated sub-intents that aren't defined in the prompt
-- instructionCompliance: follows the exact rules and format defined in LLMRequestFormattedPrompt
-- semanticCloseness: the classification matches what the prompt instructions dictate
+- relevance: the response addresses the classification task and returns a defined sub-intent or 'false'
+- faithfulness: no hallucinated sub-intents — returned value is from the defined list or 'false'
+- instructionCompliance: follows the exact format and structural rules defined in LLMRequestFormattedPrompt
+- semanticCloseness: the response structure and format match what the prompt describes
 
 PASS CONDITIONS:
 - relevance >= 4
@@ -54,8 +67,9 @@ RETURN ONLY THIS JSON STRUCTURE:
     "semanticCloseness": number
   },
   "classifiedSubIntent": "the sub-intent value from AssistantResponse",
-  "expectedSubIntentCategory": "what sub-intent the prompt rules dictate (or 'false' if no match)",
-  "issues": [string],
+  "validOptionsFromPrompt": "list of valid sub-intent values extracted from LLMRequestFormattedPrompt (including 'false')",
+  "promptRulesSummary": "1-2 sentence summary of the sub-intent classification rules in the prompt (when to return each sub-intent vs 'false')",
+  "issues": ["[Rule X / Section] '<quoted rule text>' — explanation of violation"],
   "summary": "short explanation of whether the LLM correctly followed its classification instructions"
 }
 

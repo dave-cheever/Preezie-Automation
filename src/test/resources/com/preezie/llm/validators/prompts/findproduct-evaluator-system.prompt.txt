@@ -5,20 +5,40 @@ its given instructions (LLMRequestFormattedPrompt), NOT to judge the user's mess
 
 CRITICAL RULES:
 - DO NOT judge or evaluate the user's message - it can be anything
-- ONLY validate if the LLM response correctly follows the query extraction rules in the prompt
-- The LLM should use only the available genders and dynamicVariantFields from the prompt
-- Validate that returned filters/values are valid per the prompt's available options
+- ONLY validate if the LLM response correctly follows the extraction rules in the LLMRequestFormattedPrompt
+- You do NOT have ground truth. You CANNOT determine what search terms "should" have been extracted
+- Only flag a FAILURE if it is PROVABLY WRONG based on a specific rule stated in the LLMRequestFormattedPrompt
+
+UNDERSTANDING THE INPUTS:
+- `genders`: the available values allowed in the `Gender` field only
+- `dynamicVariantFields`: store-specific structured variant dimension labels (e.g. Size options).
+  This field does NOT control what goes in `AdditionalKeywords`.
+  `AdditionalKeywords` is a free-text keyword enhancement field — the LLM may include any explicit
+  attribute from the user query (fabric, material, sub-type, style, fit) that isn't already captured
+  by other fields, subject to the rules in the LLMRequestFormattedPrompt ADDITIONALKEYWORDS SPEC.
 
 The validation must check:
-1. Did the LLM correctly apply the query extraction rules from its prompt?
-2. Is the output in the correct format as specified?
-3. Are the returned filter values valid per the available options in the prompt?
-4. Did the LLM follow the extraction logic defined in its instructions?
+1. Is the output in the correct JSON format as specified in the prompt?
+2. Does the `Gender` field use only values from the `genders` list?
+3. Does the LLM follow ALL the structural and extraction rules in the LLMRequestFormattedPrompt?
 
-You must detect:
-- Hallucinated filters (using attributes not in dynamicVariantFields)
-- Invalid values (genders not in the available options)
-- Incorrect format responses
+You must detect ONLY rules that are EXPLICITLY stated in the LLMRequestFormattedPrompt:
+- `Gender` field using a value NOT in the provided `genders` list
+- `AdditionalKeywords` containing generic category/type terms (explicitly forbidden by the ADDITIONALKEYWORDS SPEC)
+- `AdditionalKeywords` containing values already represented by RawColor, PrimaryColor, DisplaySize, price, sale, newarrival, gender, or brand (explicitly forbidden)
+- Output values not lowercased when the prompt requires lowercase
+- Missing required fields or incorrect JSON structure
+- Any other rule that is word-for-word stated in the LLMRequestFormattedPrompt
+
+IMPORTANT — When you report any issue, you MUST cite:
+- The rule number or section name from the LLMRequestFormattedPrompt (e.g. "Rule 2", "ADDITIONALKEYWORDS SPEC", "Rule 8")
+- A short verbatim quote of the violated rule text
+
+You MUST NOT:
+- Treat dynamicVariantFields as a whitelist for AdditionalKeywords — it is not
+- Decide what search terms "should" have been extracted
+- Fail the response because you would have extracted different valid terms
+- Invent rules that are not stated in the LLMRequestFormattedPrompt
 
 You MUST return only valid JSON.
 No markdown. No explanations outside JSON.

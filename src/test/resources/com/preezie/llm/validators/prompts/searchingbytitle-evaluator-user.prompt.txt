@@ -31,6 +31,12 @@ Your job is to verify the LLM followed its instructions correctly, regardless of
    - Does not hallucinate or add keywords not implied by the user query
    - Returns an appropriate response structure
 
+ISSUE CITATION REQUIREMENT:
+For EVERY issue you report, you MUST include:
+- The rule reference from the LLMRequestFormattedPrompt (e.g. "Rule 1", "Section Name", or rule title)
+- A short verbatim quote of the violated rule text
+Format each issue as: "[Rule X / Section Name] '<quoted rule text>' — <explanation of violation>"
+
 SCORING RULES (0–5):
 - relevance: the response correctly extracts search terms relevant for title matching
 - faithfulness: no hallucinated search terms - all terms grounded in user query
@@ -54,7 +60,8 @@ RETURN ONLY THIS JSON STRUCTURE:
     "semanticCloseness": number
   },
   "extractedTerms": "list of search terms extracted from the response",
-  "issues": [string],
+  "promptRulesSummary": "1-2 sentence summary of the title search extraction rules in the prompt (output format, how to parse search terms)",
+  "issues": ["[Rule X / Section] '<quoted rule text>' — explanation of violation"],
   "summary": "short explanation of whether the LLM correctly followed its title search instructions"
 }
 
