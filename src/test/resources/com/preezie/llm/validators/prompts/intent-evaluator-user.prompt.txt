@@ -18,23 +18,36 @@ IMPORTANT: You are validating ONLY whether the LLM's response is correct given t
 DO NOT judge or evaluate the user's message itself - it can be anything.
 Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
 
+CRITICAL: You do NOT have ground truth. You CANNOT determine whether the LLM picked the
+"correct" intent — you have the same inputs as the LLM. Only flag a FAILURE if it is PROVABLY
+WRONG from the provided data:
+- The returned value is NOT in the choices list
+- The output format is incorrect
+- Instructions are clearly violated
+DO NOT fail the response because you would have chosen a different valid intent.
+
 1. Review the LLMRequestFormattedPrompt to understand:
    - What intent categories/choices are available
    - What the classification rules and criteria are
 2. Review the choices in PromptArguments to know the valid intent options.
 3. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
-   - Did the LLM correctly apply the classification rules from the prompt?
    - Is the returned intent one of the valid choices?
+   - Is the format correct as specified?
 4. Validate that the AssistantResponse:
    - Follows the output format specified in the prompt
-   - Returns a valid intent from the available choices
-   - Correctly applies the classification logic per the prompt
+   - Returns a valid intent from the available choices (this is the ONLY correctness check)
+
+ISSUE CITATION REQUIREMENT:
+For EVERY issue you report, you MUST include:
+- The rule reference from the LLMRequestFormattedPrompt (e.g. "Rule 1", "Section Name", or rule title)
+- A short verbatim quote of the violated rule text
+Format each issue as: "[Rule X / Section Name] '<quoted rule text>' — <explanation of violation>"
 
 SCORING RULES (0–5):
-- relevance: the response correctly addresses the classification task as defined in the prompt
-- faithfulness: no hallucinated intents that aren't in the available choices
-- instructionCompliance: follows the exact rules and format defined in LLMRequestFormattedPrompt
-- semanticCloseness: the classification matches what the prompt instructions dictate
+- relevance: the response addresses the classification task and returns a value from the choices
+- faithfulness: the returned intent is from the available choices in the prompt (no hallucinated values)
+- instructionCompliance: follows the exact format and structural rules defined in LLMRequestFormattedPrompt
+- semanticCloseness: the response structure and format match what the prompt describes
 
 PASS CONDITIONS:
 - relevance >= 4
@@ -53,8 +66,9 @@ RETURN ONLY THIS JSON STRUCTURE:
     "semanticCloseness": number
   },
   "classifiedIntent": "the intent value from AssistantResponse",
-  "expectedIntentCategory": "what intent the prompt rules dictate based on available choices",
-  "issues": [string],
+  "validOptionsFromPrompt": "list of valid intent choices extracted from LLMRequestFormattedPrompt",
+  "promptRulesSummary": "1-2 sentence summary of the classification rules in the prompt (format, conditions, when each intent applies)",
+  "issues": ["[Rule X / Section] '<quoted rule text>' — explanation of violation"],
   "summary": "short explanation of whether the LLM correctly followed its classification instructions"
 }
 

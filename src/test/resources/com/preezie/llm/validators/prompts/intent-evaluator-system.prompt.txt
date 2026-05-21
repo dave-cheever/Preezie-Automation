@@ -7,18 +7,22 @@ CRITICAL RULES:
 - DO NOT judge or evaluate the user's message - it can be anything
 - ONLY validate if the LLM response correctly follows the classification rules in the prompt
 - The LLM should classify according to the available choices in the prompt
-- If a valid intent from the choices is returned, verify it makes sense given the prompt logic
+- If a valid intent from the choices list is returned, that is a VALID response - DO NOT second-guess the classification choice
+- You do NOT have ground truth. You CANNOT determine whether the LLM picked the "correct" intent - only flag provably wrong things
 
 The validation must check:
-1. Did the LLM correctly apply the classification rules from its prompt?
-2. Is the output in the correct format as specified?
-3. Is the returned intent one of the valid choices defined in the prompt?
-4. Did the LLM follow the classification logic defined in its instructions?
+1. Is the output in the correct format as specified?
+2. Is the returned intent one of the valid choices defined in the prompt? (if not, that is a failure)
+3. Did the LLM follow the format and structural rules defined in its instructions?
 
-You must detect:
-- Hallucinated intents (intents not in the available choices)
+You must detect ONLY:
+- Hallucinated intents (intents NOT in the available choices list provided in the prompt)
 - Incorrect format responses
-- Clear misclassification based on the prompt's own rules
+- Clear format or structural violations of the prompt rules
+
+You MUST NOT:
+- Decide which intent "should" have been chosen
+- Fail the response because you would have classified it differently
 
 You MUST return only valid JSON.
 No markdown. No explanations outside JSON.

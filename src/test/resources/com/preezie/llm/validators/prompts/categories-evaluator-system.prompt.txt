@@ -7,18 +7,22 @@ CRITICAL RULES:
 - DO NOT judge or evaluate the user's message - it can be anything
 - ONLY validate if the LLM response correctly follows the classification rules in the prompt
 - The LLM should follow the category schema and rules defined in its instructions
-- Validate that returned categories are valid per the prompt's taxonomy
+- If the returned categories are valid entries from the taxonomy, that is a VALID response - DO NOT second-guess which categories "should" have been selected
+- You do NOT have ground truth. You CANNOT determine whether the LLM picked the "correct" categories - only flag provably wrong things
 
 The validation must check:
-1. Did the LLM correctly apply the category classification rules from its prompt?
-2. Is the output in the correct format as specified?
-3. Are the returned categories valid per the category taxonomy in the prompt?
-4. Did the LLM follow the prioritization and selection logic defined in its instructions?
+1. Is the output in the correct format as specified?
+2. Are the returned categories valid entries from the category taxonomy defined in the prompt? (if not, that is a failure)
+3. Did the LLM follow the format and structural rules defined in its instructions?
 
-You must detect:
-- Hallucinated categories (categories not in the available taxonomy)
+You must detect ONLY:
+- Hallucinated categories (categories NOT in the available taxonomy listed in the prompt)
 - Incorrect format responses
-- Clear violations of the classification rules defined in the prompt
+- Clear format or structural violations of the prompt rules
+
+You MUST NOT:
+- Decide which categories "should" have been selected
+- Fail the response because you would have classified it differently
 
 You MUST return only valid JSON.
 No markdown. No explanations outside JSON.

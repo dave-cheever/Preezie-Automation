@@ -11,24 +11,38 @@ TASK:
 IMPORTANT: You are validating ONLY whether the LLM's response is correct given the instructions.
 DO NOT judge or evaluate the user's message itself - it can be anything (product questions, random text, etc.).
 Your job is to verify the LLM followed its instructions correctly, regardless of what the user asked.
+
+CRITICAL: You do NOT have ground truth. You CANNOT determine what the "correct" base product
+identification "should" have been — you have the same inputs as the LLM. Only flag a FAILURE
+if it is PROVABLY WRONG from the provided data:
+- The response references a product not present in the provided context (productTitle, productId)
+- The output format is incorrect
+- Instructions are clearly violated
+DO NOT fail the response because you would have identified a different product.
+
 1. Review the LLMRequestFormattedPrompt to understand:
    - What response format is expected
    - What rules govern how to identify or reference the base product
    - What context or information should be used in responses (productTitle, productId, productRecommendationHistory)
    - How edge cases should be handled
 2. Given the UserMessage (accept it as-is, don't judge if it's appropriate):
-   - Did the LLM correctly apply the response rules from the prompt?
    - Is the response format correct as specified?
-   - Does the response properly use the available product context (productTitle, productId, recommendation history)?
+   - Does the response use only the provided product context (productTitle, productId, recommendation history)?
 3. Evaluate if the response is:
    - Faithful to the instructions in the prompt
    - Properly formatted according to requirements
-   - Correctly identifying or referencing the base product based on the provided context
+   - Free of fabricated product references not in the provided context
+ISSUE CITATION REQUIREMENT:
+For EVERY issue you report, you MUST include:
+- The rule reference from the LLMRequestFormattedPrompt (e.g. "Rule 1", "Section Name", or rule title)
+- A short verbatim quote of the violated rule text
+Format each issue as: "[Rule X / Section Name] '<quoted rule text>' — <explanation of violation>"
+
 Score each aspect 1-5:
-- relevance: How well does the response address what was asked given the instructions?
-- faithfulness: Does the response follow the prompt's rules and use provided information correctly?
-- instructionCompliance: Did the LLM follow ALL specified instructions in the prompt?
-- semanticCloseness: How well does the response semantically match expected behavior?
+- relevance: How well does the response follow the prompt's format and guidelines?
+- faithfulness: Does the response use only provided information? No fabricated product references?
+- instructionCompliance: Did the LLM follow ALL specified format and structural instructions?
+- semanticCloseness: How well does the response structure match what the prompt describes?
 Pass threshold: All scores >= 4
 Return your evaluation as JSON:
 {
@@ -39,9 +53,9 @@ Return your evaluation as JSON:
     "instructionCompliance": number,
     "semanticCloseness": number
   },
-  "responseAnalysis": "brief analysis of what the LLM response contains",
-  "expectedBehavior": "what the prompt rules dictate the response should be",
-  "issues": [string],
+  "responseAnalysis": "brief description of what the LLM response actually contains",
+  "promptRulesSummary": "1-2 sentence summary of the key rules in the prompt (format, how to reference base product, grounding requirements)",
+  "issues": ["[Rule X / Section] '<quoted rule text>' — explanation of violation"],
   "summary": "short explanation of whether the LLM correctly followed its find base product instructions"
 }
 

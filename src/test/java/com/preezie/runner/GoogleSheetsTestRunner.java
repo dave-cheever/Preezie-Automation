@@ -546,6 +546,23 @@ public class GoogleSheetsTestRunner {
                     findProductsToBundleCost.setAvgCompletionTokens(findProductsToBundleData.getAvgCompletionTokens());
                     sheetsCostSummary.setFindProductsToBundleCost(findProductsToBundleCost);
                 }
+
+                // Add generalConversation breakdown
+                CostCalculator.ValidationTypeSummary generalConversationData = costSummary.getGetGeneralConversationSummary();
+                if (generalConversationData != null) {
+                    GoogleSheetsResultWriter.ValidationTypeCostSummary generalConversationCost = new GoogleSheetsResultWriter.ValidationTypeCostSummary();
+                    generalConversationCost.setCount(generalConversationData.getCount());
+                    generalConversationCost.setPromptTokens(generalConversationData.getPromptTokens());
+                    generalConversationCost.setCompletionTokens(generalConversationData.getCompletionTokens());
+                    generalConversationCost.setTotalTokens(generalConversationData.getTotalTokens());
+                    generalConversationCost.setInputCost(generalConversationData.getInputCost().doubleValue());
+                    generalConversationCost.setOutputCost(generalConversationData.getOutputCost().doubleValue());
+                    generalConversationCost.setTotalCost(generalConversationData.getTotalCost().doubleValue());
+                    generalConversationCost.setAvgCostPerRequest(generalConversationData.getAvgCostPerRequest().doubleValue());
+                    generalConversationCost.setAvgPromptTokens(generalConversationData.getAvgPromptTokens());
+                    generalConversationCost.setAvgCompletionTokens(generalConversationData.getAvgCompletionTokens());
+                    sheetsCostSummary.setGeneralConversationCost(generalConversationCost);
+                }
                 
                 // Add detailed usage data
                 List<UsageData> usageDataList = readUsageData(usageCsvPath);

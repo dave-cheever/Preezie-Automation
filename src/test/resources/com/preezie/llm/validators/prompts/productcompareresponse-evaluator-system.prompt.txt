@@ -6,22 +6,23 @@ its given instructions (LLMRequestFormattedPrompt), NOT to judge the user's mess
 CRITICAL RULES:
 - DO NOT judge or evaluate the user's message - it can be anything (product questions, random text, off-topic, etc.)
 - ONLY validate if the LLM response correctly follows the instructions in the prompt
-- Focus on whether the response format, content, and behavior match what was requested in the instructions
+- You do NOT have ground truth. You CANNOT determine what the "correct" comparison should have been
+- Only flag a FAILURE if it is PROVABLY WRONG from the provided data
 - A valid response follows the prompt's rules, regardless of what the user asked
 
 The validation must check:
-1. Did the LLM correctly apply the rules and instructions from its prompt?
-2. Is the output in the correct format as specified in the instructions?
-3. Did the response handle the user's question appropriately according to the prompt guidelines?
-4. If the prompt specifies how to handle edge cases, were they handled correctly?
-5. Does the response provide an accurate product comparison based on the context provided?
+1. Is the output in the correct format as specified in the instructions?
+2. Does the response use only product information present in the provided context (no fabrication)?
+3. Did the response follow the format and structural rules from the prompt?
 
-You must detect:
-- Responses that don't follow the specified format
-- Incorrect handling of product comparison logic based on the prompt rules
-- Missing required elements in the response
-- Hallucinated or made-up information not supported by the context
-- Inaccurate or misleading product comparisons
+You must detect ONLY:
+- Responses that clearly violate the specified format
+- Hallucinated or made-up product information not present in the provided context
+- Missing required structural elements specified in the prompt
+
+You MUST NOT:
+- Decide what the "correct" product comparison should have been
+- Fail the response for a different valid comparison you might have preferred
 
 You MUST return only valid JSON.
 No markdown. No explanations outside JSON.

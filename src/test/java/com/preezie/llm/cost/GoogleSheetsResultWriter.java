@@ -481,6 +481,28 @@ public class GoogleSheetsResultWriter {
             }
             data.add(Arrays.asList("")); // Empty row
 
+            // generalConversation Section
+            data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
+            data.add(Arrays.asList("AI COST SUMMARY - generalConversation"));
+            data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
+            data.add(Arrays.asList("Metric", "Value"));
+            if (cost.getGeneralConversationCost() != null) {
+                ValidationTypeCostSummary generalConversationCostSummary = cost.getGeneralConversationCost();
+                data.add(Arrays.asList("Evaluations", generalConversationCostSummary.getCount()));
+                data.add(Arrays.asList("Prompt Tokens", String.format("%,d", generalConversationCostSummary.getPromptTokens())));
+                data.add(Arrays.asList("Completion Tokens", String.format("%,d", generalConversationCostSummary.getCompletionTokens())));
+                data.add(Arrays.asList("Total Tokens", String.format("%,d", generalConversationCostSummary.getTotalTokens())));
+                data.add(Arrays.asList("Input Cost", String.format("$%.6f", generalConversationCostSummary.getInputCost())));
+                data.add(Arrays.asList("Output Cost", String.format("$%.6f", generalConversationCostSummary.getOutputCost())));
+                data.add(Arrays.asList("Total Cost", String.format("$%.6f", generalConversationCostSummary.getTotalCost())));
+                data.add(Arrays.asList("Avg Cost/Evaluation", String.format("$%.6f", generalConversationCostSummary.getAvgCostPerRequest())));
+                data.add(Arrays.asList("Avg Prompt Tokens", String.format("%.2f", generalConversationCostSummary.getAvgPromptTokens())));
+                data.add(Arrays.asList("Avg Completion Tokens", String.format("%.2f", generalConversationCostSummary.getAvgCompletionTokens())));
+            } else {
+                data.add(Arrays.asList("No data", "N/A"));
+            }
+            data.add(Arrays.asList("")); // Empty row
+
             // Combined Total Section
             data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
             data.add(Arrays.asList("COMBINED TOTAL AI COST SUMMARY"));
@@ -503,6 +525,7 @@ public class GoogleSheetsResultWriter {
             int productCompareResponseCount = cost.getProductCompareResponseCost() != null ? cost.getProductCompareResponseCost().getCount() : 0;
             int findBaseProductCount = cost.getFindBaseProductCost() != null ? cost.getFindBaseProductCost().getCount() : 0;
             int findProductsToBundleCount = cost.getFindProductsToBundleCost() != null ? cost.getFindProductsToBundleCost().getCount() : 0;
+            int generalConversationCount = cost.getGeneralConversationCost() != null ? cost.getGeneralConversationCost().getCount() : 0;
             data.add(Arrays.asList("  - getIntentSummary", intentSummaryCount));
             data.add(Arrays.asList("  - getIntent", intentCount));
             data.add(Arrays.asList("  - getCategories", categoriesCount));
@@ -519,6 +542,7 @@ public class GoogleSheetsResultWriter {
             data.add(Arrays.asList("  - productCompareResponse", productCompareResponseCount));
             data.add(Arrays.asList("  - findBaseProduct", findBaseProductCount));
             data.add(Arrays.asList("  - findProductsToBundle", findProductsToBundleCount));
+            data.add(Arrays.asList("  - generalConversation", generalConversationCount));
             data.add(Arrays.asList(""));
             data.add(Arrays.asList("Total Prompt Tokens", String.format("%,d", cost.getTotalPromptTokens())));
             data.add(Arrays.asList("Total Completion Tokens", String.format("%,d", cost.getTotalCompletionTokens())));
@@ -720,6 +744,7 @@ public class GoogleSheetsResultWriter {
         private ValidationTypeCostSummary productCompareResponseCost;
         private ValidationTypeCostSummary findBaseProductCost;
         private ValidationTypeCostSummary findProductsToBundleCost;
+        private ValidationTypeCostSummary generalConversationCost;
 
         // Getters and setters
         public int getTotalRequests() { return totalRequests; }
@@ -803,6 +828,9 @@ public class GoogleSheetsResultWriter {
         
         public ValidationTypeCostSummary getFindProductsToBundleCost() { return findProductsToBundleCost; }
         public void setFindProductsToBundleCost(ValidationTypeCostSummary findProductsToBundleCost) { this.findProductsToBundleCost = findProductsToBundleCost; }
+        
+        public ValidationTypeCostSummary getGeneralConversationCost() { return generalConversationCost; }
+        public void setGeneralConversationCost(ValidationTypeCostSummary generalConversationCost) { this.generalConversationCost = generalConversationCost; }
     }
 
     /**

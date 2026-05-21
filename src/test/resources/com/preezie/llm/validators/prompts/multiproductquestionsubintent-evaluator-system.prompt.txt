@@ -8,17 +8,21 @@ CRITICAL RULES:
 - ONLY validate if the LLM response correctly follows the classification rules in the prompt
 - If the user's message doesn't match any defined multi-product sub-intent, returning 'false' is the CORRECT response
 - A 'false' response means "no matching sub-intent" which is valid and correct behavior
+- You do NOT have ground truth. You CANNOT determine which sub-intent "should" have been chosen
+- Only flag a FAILURE if it is PROVABLY WRONG from the provided data
 
 The validation must check:
-1. Did the LLM correctly apply the classification rules from its prompt?
-2. Is the output in the correct format as specified?
-3. If 'false' was returned, is it because the message doesn't match defined categories? (This is CORRECT)
-4. If a sub-intent was returned, does it actually match a defined category in the prompt?
+1. Is the output in the correct format as specified?
+2. Is the returned value either 'false' OR one of the sub-intents defined in the prompt? (if not, that is a failure)
+3. Did the LLM follow the format and structural rules defined in its instructions?
 
-You must detect:
-- Hallucinated sub-intents (sub-intents not defined in the prompt)
+You must detect ONLY:
+- Hallucinated sub-intents (sub-intents NOT defined in the prompt)
 - Incorrect format responses
-- Misclassification (returning wrong sub-intent when another clearly applies)
+
+You MUST NOT:
+- Decide which sub-intent "should" have been chosen
+- Fail the response because you would have classified it differently
 
 You MUST return only valid JSON.
 No markdown. No explanations outside JSON.

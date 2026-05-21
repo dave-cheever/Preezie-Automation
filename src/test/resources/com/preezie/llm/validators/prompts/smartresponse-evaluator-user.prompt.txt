@@ -33,6 +33,12 @@ Your job is to verify the LLM followed its instructions correctly, regardless of
    - Follows the conversational guidelines per the prompt
    - Does not fabricate product features, prices, or availability
 
+ISSUE CITATION REQUIREMENT:
+For EVERY issue you report, you MUST include:
+- The rule reference from the LLMRequestFormattedPrompt (e.g. "Rule 1", "Section Name", or rule title)
+- A short verbatim quote of the violated rule text
+Format each issue as: "[Rule X / Section Name] '<quoted rule text>' — <explanation of violation>"
+
 SCORING RULES (0–5):
 - relevance: the response follows the prompt's response guidelines
 - faithfulness: no hallucinated product details - all info grounded in provided data
@@ -55,9 +61,9 @@ RETURN ONLY THIS JSON STRUCTURE:
     "instructionCompliance": number,
     "semanticCloseness": number
   },
-  "responseType": "recommendation | answer | information | error",
-  "productsReferenced": "list of product names/IDs referenced in the response",
-  "issues": [string],
+  "responseAnalysis": "brief description of what the LLM response actually contains",
+  "promptRulesSummary": "1-2 sentence summary of the key response rules in the prompt (format, tone, grounding requirements, what product data must be used)",
+  "issues": ["[Rule X / Section] '<quoted rule text>' — explanation of violation"],
   "summary": "short explanation of whether the LLM correctly followed its response instructions"
 }
 

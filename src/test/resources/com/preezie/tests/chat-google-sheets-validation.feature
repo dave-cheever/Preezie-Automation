@@ -174,20 +174,10 @@ Scenario: Run all enabled tests from Google Sheets
           // Build detailed error message for getIntentSummary
           var errorDetails = '';
           if (validation) {
-            if (validation.scores) {
-              errorDetails += 'Scores: relevance=' + (validation.scores.relevance || 'N/A') +
-                ', faithfulness=' + (validation.scores.faithfulness || 'N/A') +
-                ', instructionCompliance=' + (validation.scores.instructionCompliance || 'N/A') +
-                ', semanticCloseness=' + (validation.scores.semanticCloseness || 'N/A') + '. ';
-            }
-            if (validation.issues && validation.issues.length > 0) {
-              errorDetails += 'Issues: ' + validation.issues.join('; ') + '. ';
-            }
-            if (validation.summary) {
-              errorDetails += 'Summary: ' + validation.summary;
-            }
+            var parsedIntentSummaryContent = evalResult.evaluatorResultOut ? evalResult.evaluatorResultOut.parsedContent : null;
+            errorDetails = utils.buildReport(validation, parsedIntentSummaryContent, 'getIntentSummary');
           } else {
-            errorDetails = 'LLM evaluation failed or returned no validation';
+            errorDetails = utils.buildReport(null, null, 'getIntentSummary');
           }
 
           results.errors.push({
@@ -237,31 +227,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var intentErrorDetails = '';
-            if (intentValidation) {
-              if (intentValidation.scores) {
-                intentErrorDetails += 'Scores: relevance=' + (intentValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (intentValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (intentValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (intentValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
-              // Include classified intent info from AI
-              var parsedContent = intentEvalResult.intentEvaluatorResultOut ? intentEvalResult.intentEvaluatorResultOut.parsedContent : null;
-              if (parsedContent) {
-                if (parsedContent.classifiedIntent) {
-                  intentErrorDetails += 'Classified Intent: ' + parsedContent.classifiedIntent + '. ';
-                }
-                if (parsedContent.expectedIntentCategory) {
-                  intentErrorDetails += 'Expected Category: ' + parsedContent.expectedIntentCategory + '. ';
-                }
-              }
-              if (intentValidation.issues && intentValidation.issues.length > 0) {
-                intentErrorDetails += 'Issues: ' + intentValidation.issues.join('; ') + '. ';
-              }
-              if (intentValidation.summary) {
-                intentErrorDetails += 'Summary: ' + intentValidation.summary;
-              }
-            } else {
-              intentErrorDetails = 'Intent LLM evaluation failed or returned no validation';
+            {
+              var parsedIntentContent = intentEvalResult.intentEvaluatorResultOut ? intentEvalResult.intentEvaluatorResultOut.parsedContent : null;
+              intentErrorDetails = utils.buildReport(intentValidation, parsedIntentContent, 'getIntent');
             }
 
             results.errors.push({
@@ -314,31 +282,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var categoriesErrorDetails = '';
-            if (categoriesValidation) {
-              if (categoriesValidation.scores) {
-                categoriesErrorDetails += 'Scores: relevance=' + (categoriesValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (categoriesValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (categoriesValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (categoriesValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
-              // Include classified categories info from AI
+            {
               var parsedCategoriesContent = categoriesEvalResult.categoriesEvaluatorResultOut ? categoriesEvalResult.categoriesEvaluatorResultOut.parsedContent : null;
-              if (parsedCategoriesContent) {
-                if (parsedCategoriesContent.classifiedCategories) {
-                  categoriesErrorDetails += 'Classified Categories: ' + parsedCategoriesContent.classifiedCategories + '. ';
-                }
-                if (parsedCategoriesContent.expectedCategories) {
-                  categoriesErrorDetails += 'Expected Categories: ' + parsedCategoriesContent.expectedCategories + '. ';
-                }
-              }
-              if (categoriesValidation.issues && categoriesValidation.issues.length > 0) {
-                categoriesErrorDetails += 'Issues: ' + categoriesValidation.issues.join('; ') + '. ';
-              }
-              if (categoriesValidation.summary) {
-                categoriesErrorDetails += 'Summary: ' + categoriesValidation.summary;
-              }
-            } else {
-              categoriesErrorDetails = 'Categories LLM evaluation failed or returned no validation';
+              categoriesErrorDetails = utils.buildReport(categoriesValidation, parsedCategoriesContent, 'getCategories');
             }
 
             results.errors.push({
@@ -391,31 +337,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var findProductErrorDetails = '';
-            if (findProductValidation) {
-              if (findProductValidation.scores) {
-                findProductErrorDetails += 'Scores: relevance=' + (findProductValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (findProductValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (findProductValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (findProductValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
-              // Include extracted query info from AI
+            {
               var parsedFindProductContent = findProductEvalResult.findProductEvaluatorResultOut ? findProductEvalResult.findProductEvaluatorResultOut.parsedContent : null;
-              if (parsedFindProductContent) {
-                if (parsedFindProductContent.extractedQuery) {
-                  findProductErrorDetails += 'Extracted Query: ' + parsedFindProductContent.extractedQuery + '. ';
-                }
-                if (parsedFindProductContent.expectedQuery) {
-                  findProductErrorDetails += 'Expected Query: ' + parsedFindProductContent.expectedQuery + '. ';
-                }
-              }
-              if (findProductValidation.issues && findProductValidation.issues.length > 0) {
-                findProductErrorDetails += 'Issues: ' + findProductValidation.issues.join('; ') + '. ';
-              }
-              if (findProductValidation.summary) {
-                findProductErrorDetails += 'Summary: ' + findProductValidation.summary;
-              }
-            } else {
-              findProductErrorDetails = 'FindProduct LLM evaluation failed or returned no validation';
+              findProductErrorDetails = utils.buildReport(findProductValidation, parsedFindProductContent, 'findProductFromPrompt');
             }
 
             results.errors.push({
@@ -468,31 +392,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var smartResponseErrorDetails = '';
-            if (smartResponseValidation) {
-              if (smartResponseValidation.scores) {
-                smartResponseErrorDetails += 'Scores: relevance=' + (smartResponseValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (smartResponseValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (smartResponseValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (smartResponseValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
-              // Include response type and products referenced from AI
+            {
               var parsedSmartResponseContent = smartResponseEvalResult.smartResponseEvaluatorResultOut ? smartResponseEvalResult.smartResponseEvaluatorResultOut.parsedContent : null;
-              if (parsedSmartResponseContent) {
-                if (parsedSmartResponseContent.responseType) {
-                  smartResponseErrorDetails += 'Response Type: ' + parsedSmartResponseContent.responseType + '. ';
-                }
-                if (parsedSmartResponseContent.productsReferenced) {
-                  smartResponseErrorDetails += 'Products Referenced: ' + parsedSmartResponseContent.productsReferenced + '. ';
-                }
-              }
-              if (smartResponseValidation.issues && smartResponseValidation.issues.length > 0) {
-                smartResponseErrorDetails += 'Issues: ' + smartResponseValidation.issues.join('; ') + '. ';
-              }
-              if (smartResponseValidation.summary) {
-                smartResponseErrorDetails += 'Summary: ' + smartResponseValidation.summary;
-              }
-            } else {
-              smartResponseErrorDetails = 'SmartResponse LLM evaluation failed or returned no validation';
+              smartResponseErrorDetails = utils.buildReport(smartResponseValidation, parsedSmartResponseContent, 'smartResponse');
             }
 
             results.errors.push({
@@ -545,31 +447,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var getUserInformationErrorDetails = '';
-            if (getUserInformationValidation) {
-              if (getUserInformationValidation.scores) {
-                getUserInformationErrorDetails += 'Scores: relevance=' + (getUserInformationValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (getUserInformationValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (getUserInformationValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (getUserInformationValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
-              // Include extracted info from AI
+            {
               var parsedGetUserInformationContent = getUserInformationEvalResult.getUserInformationEvaluatorResultOut ? getUserInformationEvalResult.getUserInformationEvaluatorResultOut.parsedContent : null;
-              if (parsedGetUserInformationContent) {
-                if (parsedGetUserInformationContent.extractedInfo) {
-                  getUserInformationErrorDetails += 'Extracted Info: ' + parsedGetUserInformationContent.extractedInfo + '. ';
-                }
-                if (parsedGetUserInformationContent.expectedInfo) {
-                  getUserInformationErrorDetails += 'Expected Info: ' + parsedGetUserInformationContent.expectedInfo + '. ';
-                }
-              }
-              if (getUserInformationValidation.issues && getUserInformationValidation.issues.length > 0) {
-                getUserInformationErrorDetails += 'Issues: ' + getUserInformationValidation.issues.join('; ') + '. ';
-              }
-              if (getUserInformationValidation.summary) {
-                getUserInformationErrorDetails += 'Summary: ' + getUserInformationValidation.summary;
-              }
-            } else {
-              getUserInformationErrorDetails = 'GetUserInformation LLM evaluation failed or returned no validation';
+              getUserInformationErrorDetails = utils.buildReport(getUserInformationValidation, parsedGetUserInformationContent, 'getUserInformation');
             }
 
             results.errors.push({
@@ -622,31 +502,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var specificQuestionSubIntentErrorDetails = '';
-            if (specificQuestionSubIntentValidation) {
-              if (specificQuestionSubIntentValidation.scores) {
-                specificQuestionSubIntentErrorDetails += 'Scores: relevance=' + (specificQuestionSubIntentValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (specificQuestionSubIntentValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (specificQuestionSubIntentValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (specificQuestionSubIntentValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
-              // Include classified sub-intent info from AI
+            {
               var parsedSpecificQuestionSubIntentContent = specificQuestionSubIntentEvalResult.specificQuestionSubIntentEvaluatorResultOut ? specificQuestionSubIntentEvalResult.specificQuestionSubIntentEvaluatorResultOut.parsedContent : null;
-              if (parsedSpecificQuestionSubIntentContent) {
-                if (parsedSpecificQuestionSubIntentContent.classifiedSubIntent) {
-                  specificQuestionSubIntentErrorDetails += 'Classified SubIntent: ' + parsedSpecificQuestionSubIntentContent.classifiedSubIntent + '. ';
-                }
-                if (parsedSpecificQuestionSubIntentContent.expectedSubIntentCategory) {
-                  specificQuestionSubIntentErrorDetails += 'Expected SubIntent Category: ' + parsedSpecificQuestionSubIntentContent.expectedSubIntentCategory + '. ';
-                }
-              }
-              if (specificQuestionSubIntentValidation.issues && specificQuestionSubIntentValidation.issues.length > 0) {
-                specificQuestionSubIntentErrorDetails += 'Issues: ' + specificQuestionSubIntentValidation.issues.join('; ') + '. ';
-              }
-              if (specificQuestionSubIntentValidation.summary) {
-                specificQuestionSubIntentErrorDetails += 'Summary: ' + specificQuestionSubIntentValidation.summary;
-              }
-            } else {
-              specificQuestionSubIntentErrorDetails = 'SpecificQuestionSubIntent LLM evaluation failed or returned no validation';
+              specificQuestionSubIntentErrorDetails = utils.buildReport(specificQuestionSubIntentValidation, parsedSpecificQuestionSubIntentContent, 'getSpecificQuestionSubIntent');
             }
 
             results.errors.push({
@@ -699,31 +557,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var multiProductQuestionSubIntentErrorDetails = '';
-            if (multiProductQuestionSubIntentValidation) {
-              if (multiProductQuestionSubIntentValidation.scores) {
-                multiProductQuestionSubIntentErrorDetails += 'Scores: relevance=' + (multiProductQuestionSubIntentValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (multiProductQuestionSubIntentValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (multiProductQuestionSubIntentValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (multiProductQuestionSubIntentValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
-              // Include classified sub-intent info from AI
+            {
               var parsedMultiProductQuestionSubIntentContent = multiProductQuestionSubIntentEvalResult.multiProductQuestionSubIntentEvaluatorResultOut ? multiProductQuestionSubIntentEvalResult.multiProductQuestionSubIntentEvaluatorResultOut.parsedContent : null;
-              if (parsedMultiProductQuestionSubIntentContent) {
-                if (parsedMultiProductQuestionSubIntentContent.classifiedSubIntent) {
-                  multiProductQuestionSubIntentErrorDetails += 'Classified SubIntent: ' + parsedMultiProductQuestionSubIntentContent.classifiedSubIntent + '. ';
-                }
-                if (parsedMultiProductQuestionSubIntentContent.expectedSubIntentCategory) {
-                  multiProductQuestionSubIntentErrorDetails += 'Expected SubIntent Category: ' + parsedMultiProductQuestionSubIntentContent.expectedSubIntentCategory + '. ';
-                }
-              }
-              if (multiProductQuestionSubIntentValidation.issues && multiProductQuestionSubIntentValidation.issues.length > 0) {
-                multiProductQuestionSubIntentErrorDetails += 'Issues: ' + multiProductQuestionSubIntentValidation.issues.join('; ') + '. ';
-              }
-              if (multiProductQuestionSubIntentValidation.summary) {
-                multiProductQuestionSubIntentErrorDetails += 'Summary: ' + multiProductQuestionSubIntentValidation.summary;
-              }
-            } else {
-              multiProductQuestionSubIntentErrorDetails = 'MultiProductQuestionSubIntent LLM evaluation failed or returned no validation';
+              multiProductQuestionSubIntentErrorDetails = utils.buildReport(multiProductQuestionSubIntentValidation, parsedMultiProductQuestionSubIntentContent, 'getMultiProductQuestionSubIntent');
             }
 
             results.errors.push({
@@ -776,31 +612,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var specificProductQuestionErrorDetails = '';
-            if (specificProductQuestionValidation) {
-              if (specificProductQuestionValidation.scores) {
-                specificProductQuestionErrorDetails += 'Scores: relevance=' + (specificProductQuestionValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (specificProductQuestionValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (specificProductQuestionValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (specificProductQuestionValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
-              // Include response analysis from AI
+            {
               var parsedSpecificProductQuestionContent = specificProductQuestionEvalResult.specificProductQuestionEvaluatorResultOut ? specificProductQuestionEvalResult.specificProductQuestionEvaluatorResultOut.parsedContent : null;
-              if (parsedSpecificProductQuestionContent) {
-                if (parsedSpecificProductQuestionContent.responseAnalysis) {
-                  specificProductQuestionErrorDetails += 'Response Analysis: ' + parsedSpecificProductQuestionContent.responseAnalysis + '. ';
-                }
-                if (parsedSpecificProductQuestionContent.expectedBehavior) {
-                  specificProductQuestionErrorDetails += 'Expected Behavior: ' + parsedSpecificProductQuestionContent.expectedBehavior + '. ';
-                }
-              }
-              if (specificProductQuestionValidation.issues && specificProductQuestionValidation.issues.length > 0) {
-                specificProductQuestionErrorDetails += 'Issues: ' + specificProductQuestionValidation.issues.join('; ') + '. ';
-              }
-              if (specificProductQuestionValidation.summary) {
-                specificProductQuestionErrorDetails += 'Summary: ' + specificProductQuestionValidation.summary;
-              }
-            } else {
-              specificProductQuestionErrorDetails = 'SpecificProductQuestion LLM evaluation failed or returned no validation';
+              specificProductQuestionErrorDetails = utils.buildReport(specificProductQuestionValidation, parsedSpecificProductQuestionContent, 'specificProductQuestion');
             }
 
             results.errors.push({
@@ -853,28 +667,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var searchingByTitleErrorDetails = '';
-            if (searchingByTitleValidation) {
-              if (searchingByTitleValidation.scores) {
-                searchingByTitleErrorDetails += 'Scores: relevance=' + (searchingByTitleValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (searchingByTitleValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (searchingByTitleValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (searchingByTitleValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
-              // Include extracted terms from AI
+            {
               var parsedSearchingByTitleContent = searchingByTitleEvalResult.searchingByTitleEvaluatorResultOut ? searchingByTitleEvalResult.searchingByTitleEvaluatorResultOut.parsedContent : null;
-              if (parsedSearchingByTitleContent) {
-                if (parsedSearchingByTitleContent.extractedTerms) {
-                  searchingByTitleErrorDetails += 'Extracted Terms: ' + parsedSearchingByTitleContent.extractedTerms + '. ';
-                }
-              }
-              if (searchingByTitleValidation.issues && searchingByTitleValidation.issues.length > 0) {
-                searchingByTitleErrorDetails += 'Issues: ' + searchingByTitleValidation.issues.join('; ') + '. ';
-              }
-              if (searchingByTitleValidation.summary) {
-                searchingByTitleErrorDetails += 'Summary: ' + searchingByTitleValidation.summary;
-              }
-            } else {
-              searchingByTitleErrorDetails = 'SearchingByTitle LLM evaluation failed or returned no validation';
+              searchingByTitleErrorDetails = utils.buildReport(searchingByTitleValidation, parsedSearchingByTitleContent, 'searchingByTitle');
             }
 
             results.errors.push({
@@ -927,31 +722,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var specificProductQuestionResponseErrorDetails = '';
-            if (specificProductQuestionResponseValidation) {
-              if (specificProductQuestionResponseValidation.scores) {
-                specificProductQuestionResponseErrorDetails += 'Scores: relevance=' + (specificProductQuestionResponseValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (specificProductQuestionResponseValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (specificProductQuestionResponseValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (specificProductQuestionResponseValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
-              // Include response analysis from AI
+            {
               var parsedSpecificProductQuestionResponseContent = specificProductQuestionResponseEvalResult.specificProductQuestionResponseEvaluatorResultOut ? specificProductQuestionResponseEvalResult.specificProductQuestionResponseEvaluatorResultOut.parsedContent : null;
-              if (parsedSpecificProductQuestionResponseContent) {
-                if (parsedSpecificProductQuestionResponseContent.responseAnalysis) {
-                  specificProductQuestionResponseErrorDetails += 'Response Analysis: ' + parsedSpecificProductQuestionResponseContent.responseAnalysis + '. ';
-                }
-                if (parsedSpecificProductQuestionResponseContent.expectedBehavior) {
-                  specificProductQuestionResponseErrorDetails += 'Expected Behavior: ' + parsedSpecificProductQuestionResponseContent.expectedBehavior + '. ';
-                }
-              }
-              if (specificProductQuestionResponseValidation.issues && specificProductQuestionResponseValidation.issues.length > 0) {
-                specificProductQuestionResponseErrorDetails += 'Issues: ' + specificProductQuestionResponseValidation.issues.join('; ') + '. ';
-              }
-              if (specificProductQuestionResponseValidation.summary) {
-                specificProductQuestionResponseErrorDetails += 'Summary: ' + specificProductQuestionResponseValidation.summary;
-              }
-            } else {
-              specificProductQuestionResponseErrorDetails = 'SpecificProductQuestionResponse LLM evaluation failed or returned no validation';
+              specificProductQuestionResponseErrorDetails = utils.buildReport(specificProductQuestionResponseValidation, parsedSpecificProductQuestionResponseContent, 'specificProductQuestionResponse');
             }
 
             results.errors.push({
@@ -1023,31 +796,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var specificProductSizeRecommendationErrorDetails = '';
-            if (specificProductSizeRecommendationValidation) {
-              if (specificProductSizeRecommendationValidation.scores) {
-                specificProductSizeRecommendationErrorDetails += 'Scores: relevance=' + (specificProductSizeRecommendationValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (specificProductSizeRecommendationValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (specificProductSizeRecommendationValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (specificProductSizeRecommendationValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
-              // Include response analysis from AI
+            {
               var parsedSpecificProductSizeRecommendationContent = specificProductSizeRecommendationEvalResult.specificProductSizeRecommendationEvaluatorResultOut ? specificProductSizeRecommendationEvalResult.specificProductSizeRecommendationEvaluatorResultOut.parsedContent : null;
-              if (parsedSpecificProductSizeRecommendationContent) {
-                if (parsedSpecificProductSizeRecommendationContent.responseAnalysis) {
-                  specificProductSizeRecommendationErrorDetails += 'Response Analysis: ' + parsedSpecificProductSizeRecommendationContent.responseAnalysis + '. ';
-                }
-                if (parsedSpecificProductSizeRecommendationContent.expectedBehavior) {
-                  specificProductSizeRecommendationErrorDetails += 'Expected Behavior: ' + parsedSpecificProductSizeRecommendationContent.expectedBehavior + '. ';
-                }
-              }
-              if (specificProductSizeRecommendationValidation.issues && specificProductSizeRecommendationValidation.issues.length > 0) {
-                specificProductSizeRecommendationErrorDetails += 'Issues: ' + specificProductSizeRecommendationValidation.issues.join('; ') + '. ';
-              }
-              if (specificProductSizeRecommendationValidation.summary) {
-                specificProductSizeRecommendationErrorDetails += 'Summary: ' + specificProductSizeRecommendationValidation.summary;
-              }
-            } else {
-              specificProductSizeRecommendationErrorDetails = 'SpecificProductSizeRecommendation LLM evaluation failed or returned no validation';
+              specificProductSizeRecommendationErrorDetails = utils.buildReport(specificProductSizeRecommendationValidation, parsedSpecificProductSizeRecommendationContent, 'specificProductSizeRecommendation');
             }
 
             results.errors.push({
@@ -1100,31 +851,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var similarBaseProductErrorDetails = '';
-            if (similarBaseProductValidation) {
-              if (similarBaseProductValidation.scores) {
-                similarBaseProductErrorDetails += 'Scores: relevance=' + (similarBaseProductValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (similarBaseProductValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (similarBaseProductValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (similarBaseProductValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
-              // Include response analysis from AI
+            {
               var parsedSimilarBaseProductContent = similarBaseProductEvalResult.similarBaseProductEvaluatorResultOut ? similarBaseProductEvalResult.similarBaseProductEvaluatorResultOut.parsedContent : null;
-              if (parsedSimilarBaseProductContent) {
-                if (parsedSimilarBaseProductContent.responseAnalysis) {
-                  similarBaseProductErrorDetails += 'Response Analysis: ' + parsedSimilarBaseProductContent.responseAnalysis + '. ';
-                }
-                if (parsedSimilarBaseProductContent.expectedBehavior) {
-                  similarBaseProductErrorDetails += 'Expected Behavior: ' + parsedSimilarBaseProductContent.expectedBehavior + '. ';
-                }
-              }
-              if (similarBaseProductValidation.issues && similarBaseProductValidation.issues.length > 0) {
-                similarBaseProductErrorDetails += 'Issues: ' + similarBaseProductValidation.issues.join('; ') + '. ';
-              }
-              if (similarBaseProductValidation.summary) {
-                similarBaseProductErrorDetails += 'Summary: ' + similarBaseProductValidation.summary;
-              }
-            } else {
-              similarBaseProductErrorDetails = 'SimilarBaseProduct LLM evaluation failed or returned no validation';
+              similarBaseProductErrorDetails = utils.buildReport(similarBaseProductValidation, parsedSimilarBaseProductContent, 'similarBaseProduct');
             }
 
             results.errors.push({
@@ -1177,31 +906,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var productCompareResponseErrorDetails = '';
-            if (productCompareResponseValidation) {
-              if (productCompareResponseValidation.scores) {
-                productCompareResponseErrorDetails += 'Scores: relevance=' + (productCompareResponseValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (productCompareResponseValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (productCompareResponseValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (productCompareResponseValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
-              // Include response analysis from AI
+            {
               var parsedProductCompareResponseContent = productCompareResponseEvalResult.productCompareResponseEvaluatorResultOut ? productCompareResponseEvalResult.productCompareResponseEvaluatorResultOut.parsedContent : null;
-              if (parsedProductCompareResponseContent) {
-                if (parsedProductCompareResponseContent.responseAnalysis) {
-                  productCompareResponseErrorDetails += 'Response Analysis: ' + parsedProductCompareResponseContent.responseAnalysis + '. ';
-                }
-                if (parsedProductCompareResponseContent.expectedBehavior) {
-                  productCompareResponseErrorDetails += 'Expected Behavior: ' + parsedProductCompareResponseContent.expectedBehavior + '. ';
-                }
-              }
-              if (productCompareResponseValidation.issues && productCompareResponseValidation.issues.length > 0) {
-                productCompareResponseErrorDetails += 'Issues: ' + productCompareResponseValidation.issues.join('; ') + '. ';
-              }
-              if (productCompareResponseValidation.summary) {
-                productCompareResponseErrorDetails += 'Summary: ' + productCompareResponseValidation.summary;
-              }
-            } else {
-              productCompareResponseErrorDetails = 'ProductCompareResponse LLM evaluation failed or returned no validation';
+              productCompareResponseErrorDetails = utils.buildReport(productCompareResponseValidation, parsedProductCompareResponseContent, 'productCompareResponse');
             }
 
             results.errors.push({
@@ -1254,31 +961,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var findBaseProductErrorDetails = '';
-            if (findBaseProductValidation) {
-              if (findBaseProductValidation.scores) {
-                findBaseProductErrorDetails += 'Scores: relevance=' + (findBaseProductValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (findBaseProductValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (findBaseProductValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (findBaseProductValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
-              // Include response analysis from AI
+            {
               var parsedFindBaseProductContent = findBaseProductEvalResult.findBaseProductEvaluatorResultOut ? findBaseProductEvalResult.findBaseProductEvaluatorResultOut.parsedContent : null;
-              if (parsedFindBaseProductContent) {
-                if (parsedFindBaseProductContent.responseAnalysis) {
-                  findBaseProductErrorDetails += 'Response Analysis: ' + parsedFindBaseProductContent.responseAnalysis + '. ';
-                }
-                if (parsedFindBaseProductContent.expectedBehavior) {
-                  findBaseProductErrorDetails += 'Expected Behavior: ' + parsedFindBaseProductContent.expectedBehavior + '. ';
-                }
-              }
-              if (findBaseProductValidation.issues && findBaseProductValidation.issues.length > 0) {
-                findBaseProductErrorDetails += 'Issues: ' + findBaseProductValidation.issues.join('; ') + '. ';
-              }
-              if (findBaseProductValidation.summary) {
-                findBaseProductErrorDetails += 'Summary: ' + findBaseProductValidation.summary;
-              }
-            } else {
-              findBaseProductErrorDetails = 'FindBaseProduct LLM evaluation failed or returned no validation';
+              findBaseProductErrorDetails = utils.buildReport(findBaseProductValidation, parsedFindBaseProductContent, 'findBaseProduct');
             }
 
             results.errors.push({
@@ -1330,30 +1015,9 @@ Scenario: Run all enabled tests from Google Sheets
             testHasFailures = true;
 
             var findProductsToBundleErrorDetails = '';
-            if (findProductsToBundleValidation) {
-              if (findProductsToBundleValidation.scores) {
-                findProductsToBundleErrorDetails += 'Scores: relevance=' + (findProductsToBundleValidation.scores.relevance || 'N/A') +
-                  ', faithfulness=' + (findProductsToBundleValidation.scores.faithfulness || 'N/A') +
-                  ', instructionCompliance=' + (findProductsToBundleValidation.scores.instructionCompliance || 'N/A') +
-                  ', semanticCloseness=' + (findProductsToBundleValidation.scores.semanticCloseness || 'N/A') + '. ';
-              }
+            {
               var parsedFindProductsToBundleContent = findProductsToBundleEvalResult.findProductsToBundleEvaluatorResultOut ? findProductsToBundleEvalResult.findProductsToBundleEvaluatorResultOut.parsedContent : null;
-              if (parsedFindProductsToBundleContent) {
-                if (parsedFindProductsToBundleContent.responseAnalysis) {
-                  findProductsToBundleErrorDetails += 'Response Analysis: ' + parsedFindProductsToBundleContent.responseAnalysis + '. ';
-                }
-                if (parsedFindProductsToBundleContent.expectedBehavior) {
-                  findProductsToBundleErrorDetails += 'Expected Behavior: ' + parsedFindProductsToBundleContent.expectedBehavior + '. ';
-                }
-              }
-              if (findProductsToBundleValidation.issues && findProductsToBundleValidation.issues.length > 0) {
-                findProductsToBundleErrorDetails += 'Issues: ' + findProductsToBundleValidation.issues.join('; ') + '. ';
-              }
-              if (findProductsToBundleValidation.summary) {
-                findProductsToBundleErrorDetails += 'Summary: ' + findProductsToBundleValidation.summary;
-              }
-            } else {
-              findProductsToBundleErrorDetails = 'FindProductsToBundle LLM evaluation failed or returned no validation';
+              findProductsToBundleErrorDetails = utils.buildReport(findProductsToBundleValidation, parsedFindProductsToBundleContent, 'findProductsToBundle');
             }
 
             results.errors.push({
@@ -1370,6 +1034,60 @@ Scenario: Run all enabled tests from Google Sheets
           }
         } else {
           karate.log('Skipping findProductsToBundle validation (not present in trace data)');
+        }
+
+        // 20) Validate generalConversation with AI Judge (SOFT validation)
+        karate.log('Step 20: Validating generalConversation with AI Judge...');
+        var getGeneralConversationItems = karate.filter(traceData, function(x){ return x.agentName == 'generalConversation' });
+        karate.log('generalConversation items found:', getGeneralConversationItems.length);
+
+        if (getGeneralConversationItems.length > 0) {
+          var generalConversationLlmResponseText = utils.getFirstLLMResponseText(getGeneralConversationItems);
+          var generalConversationPromptArgumentsObj = utils.getFirstGeneralConversationPromptArguments(getGeneralConversationItems);
+          var generalConversationLlmRequestFormatedText = utils.getFirstLLMRequestFormatedText(getGeneralConversationItems);
+
+          var generalConversationUserMessage = utils.getFirstUserPromptOnly(getGeneralConversationItems);
+          karate.log('generalConversation UserMessage from trace:', generalConversationUserMessage ? generalConversationUserMessage.substring(0, 100) + '...' : 'null');
+          karate.log('generalConversation LLM Response:', generalConversationLlmResponseText ? generalConversationLlmResponseText.substring(0, 100) + '...' : 'null');
+
+          var generalConversationEvalArgs = {
+            PromptArguments: generalConversationPromptArgumentsObj,
+            LLMRequestFormattedPrompt: generalConversationLlmRequestFormatedText,
+            UserMessage: generalConversationUserMessage || content,
+            ResponseLLM: generalConversationLlmResponseText,
+            tenantId: tenantId,
+            content: content
+          };
+
+          var generalConversationEvalResult = karate.call('classpath:com/preezie/llm/helpers/run-generalconversation-evaluator.feature', generalConversationEvalArgs);
+          karate.log('GeneralConversation Evaluator result - pass:', generalConversationEvalResult && generalConversationEvalResult.generalConversationValidationOut ? generalConversationEvalResult.generalConversationValidationOut.pass : 'undefined');
+
+          var generalConversationValidation = generalConversationEvalResult ? generalConversationEvalResult.generalConversationValidationOut : null;
+          var generalConversationPassed = generalConversationValidation && generalConversationValidation.pass === true;
+
+          if (!generalConversationPassed) {
+            testHasFailures = true;
+
+            var generalConversationErrorDetails = '';
+            {
+              var parsedGeneralConversationContent = generalConversationEvalResult.generalConversationEvaluatorResultOut ? generalConversationEvalResult.generalConversationEvaluatorResultOut.parsedContent : null;
+              generalConversationErrorDetails = utils.buildReport(generalConversationValidation, parsedGeneralConversationContent, 'generalConversation');
+            }
+
+            results.errors.push({
+              tenant: tenantName,
+              tenantId: tenantId,
+              content: content,
+              traceId: traceId,
+              stage: 'generalConversation',
+              error: generalConversationErrorDetails,
+              responseLLM: generalConversationLlmResponseText ? (generalConversationLlmResponseText.length > 300 ? generalConversationLlmResponseText.substring(0, 300) + '...' : generalConversationLlmResponseText) : ''
+            });
+            karate.log('[SOFT FAIL] generalConversation validation:', generalConversationErrorDetails);
+            // Continue (soft validation mode)
+          }
+        } else {
+          karate.log('Skipping generalConversation validation (not present in trace data)');
         }
 
         if (testHasFailures) {
@@ -1418,19 +1136,25 @@ Scenario: Run all enabled tests from Google Sheets
         var err = results.errors[i];
         karate.log('');
         karate.log('[FAILURE ' + (i + 1) + ' of ' + results.errors.length + ']');
-        karate.log('  Tenant: ' + err.tenant + ' (' + err.tenantId + ')');
-        karate.log('  Content: ' + err.content);
-        karate.log('  TraceId: ' + (err.traceId || 'N/A'));
+        karate.log('  Tenant:    ' + err.tenant + ' (' + err.tenantId + ')');
+        karate.log('  Content:   ' + err.content);
+        karate.log('  TraceId:   ' + (err.traceId || 'N/A'));
         karate.log('  Failed At: ' + err.stage);
         if (err.expected !== undefined) {
-          karate.log('  Expected: ' + err.expected);
-          karate.log('  Actual: ' + err.actual);
+          karate.log('  Expected:  ' + err.expected);
+          karate.log('  Actual:    ' + err.actual);
         }
         if (err.error) {
-          karate.log('  Error: ' + err.error);
+          karate.log('  ── AI Judge Report ─────────────────────────────────');
+          var reportLines = err.error.split('\n');
+          for (var j = 0; j < reportLines.length; j++) {
+            karate.log(reportLines[j]);
+          }
+          karate.log('  ────────────────────────────────────────────────────');
         }
         if (err.responseLLM) {
-          karate.log('  ResponseLLM: ' + err.responseLLM);
+          karate.log('  Actual LLM Response:');
+          karate.log('    ' + err.responseLLM);
         }
       }
       karate.log('');
