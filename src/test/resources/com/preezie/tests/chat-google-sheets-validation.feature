@@ -25,6 +25,7 @@ Background:
   * def cmsBase = 'https://dev-greenback-app-cms-gateway.azurewebsites.net'
   * def utils = read('classpath:com/preezie/services/utils/pgf-utils.js')
   * def sheetsReader = read('classpath:com/preezie/services/utils/google-sheets-reader.js')
+  * def visitorRotation = read('classpath:com/preezie/services/utils/visitor-rotation.js')
   * def spreadsheetId = karate.get('googleSheetsId') || '1FV7pekpUKZ34VjDXuoslernJuGnx3jsjxJI5WkYsHVM'
   * def authToken = karate.get('cmsIdToken')
 
@@ -35,6 +36,12 @@ Scenario: Run all enabled tests from Google Sheets
   # Load all enabled test data from Google Sheets
   * def allTestData = sheetsReader.getAllEnabledTestData(spreadsheetId)
   * karate.log('Loaded', allTestData.length, 'enabled test cases from Google Sheets')
+
+  # Initialize visitor rotation (10 messages per visitor by default)
+  * def baseVisitorId = 'test_visitor_' + java.lang.System.currentTimeMillis()
+  * def messageLimit = 8
+  * def initialVisitorId = visitorRotation.initialize(baseVisitorId, messageLimit)
+  * karate.log('Visitor rotation initialized - Base ID:', baseVisitorId, '| Limit:', messageLimit)
 
   # Track results
   * def results = { passed: 0, failed: 0, errors: [] }
@@ -48,12 +55,16 @@ Scenario: Run all enabled tests from Google Sheets
     """
     function(testCase) {
       var utils = karate.get('utils');
+      var visitorRotation = karate.get('visitorRotation');
       var tenantId = testCase.tenantId;
       var tenantName = testCase.tenantName;
       var content = testCase.content;
       var expectedSafe = testCase.expectedSafe === true || testCase.expectedSafe === 'true' || testCase.expectedSafe === 'TRUE';
       var sessionId = testCase.sessionId || null;
-      var visitorId = testCase.visitorId || null;
+
+      // Get current visitorId (automatically rotates when limit is reached)
+      var visitorId = visitorRotation.getNextVisitorId();
+
       var results = karate.get('results');
 
       karate.log('');
@@ -79,6 +90,9 @@ Scenario: Run all enabled tests from Google Sheets
           sessionId: sessionId,
           visitorId: visitorId
         });
+
+        // Record that a message was sent (increments rotation counter)
+        visitorRotation.recordMessageSent();
 
         if (!chat.traceId) {
           testHasFailures = true;
