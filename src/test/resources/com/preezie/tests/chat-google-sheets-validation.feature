@@ -21,34 +21,43 @@ Feature: Chat API - TraceId + CMS validation (Google Sheets Data Driven)
   # ============================================================================
 
 Background:
-  * def baseUrl = 'https://dev-greenback-app-chat.azurewebsites.net'
-  * def cmsBase = 'https://dev-greenback-app-cms-gateway.azurewebsites.net'
-  * def utils = read('classpath:com/preezie/services/utils/pgf-utils.js')
+  # 🌍 Dynamic Environment Configuration (from Google Sheets)
   * def sheetsReader = read('classpath:com/preezie/services/utils/google-sheets-reader.js')
-  * def visitorRotation = read('classpath:com/preezie/services/utils/visitor-rotation.js')
   * def spreadsheetId = karate.get('googleSheetsId') || '1FV7pekpUKZ34VjDXuoslernJuGnx3jsjxJI5WkYsHVM'
-  * def authToken = karate.get('cmsIdToken')
+
+  # Read environment name from Google Sheets config (defaults to 'dev')
+  * def environment = sheetsReader.getEnvironmentFromConfig(spreadsheetId)
+
+  # Get environment-specific URLs and Firebase key using karate-config helper
+  * def envConfig = karate.get('getEnvironmentUrls')(environment)
+  * def baseUrl = envConfig.chatBaseUrl
+  * def cmsBase = envConfig.cmsBaseUrl
+  * karate.log('🚀 Testing on:', environment.toUpperCase(), 'environment')
+
+  # Utilities and helpers
+  * def utils = read('classpath:com/preezie/services/utils/pgf-utils.js')
+  * def visitorRotation = read('classpath:com/preezie/services/utils/visitor-rotation.js')
+  * def firebaseApiKeyConfig = envConfig.firebaseApiKey
+  * def firebaseEmailConfig = karate.get('firebaseEmail')
+  * def firebasePasswordConfig = karate.get('firebasePassword')
+  * karate.log('🔑 Using Firebase API Key:', firebaseApiKeyConfig ? firebaseApiKeyConfig.substring(0, 20) + '...' : 'null')
 
 Scenario: Run all enabled tests from Google Sheets
-  # Validate CMS authentication token is available
-  * if (!authToken) karate.fail('CMS authentication token (cmsIdToken) is not configured. Please set FIREBASE_API_KEY, FIREBASE_EMAIL, and FIREBASE_PASSWORD environment variables.')
-
   # Load all enabled test data from Google Sheets
   * def allTestData = sheetsReader.getAllEnabledTestData(spreadsheetId)
   * karate.log('Loaded', allTestData.length, 'enabled test cases from Google Sheets')
 
-  # Initialize visitor rotation (10 messages per visitor by default)
+  # Initialize visitor rotation (25 messages per visitor by default)
   * def baseVisitorId = 'test_visitor_' + java.lang.System.currentTimeMillis()
-  * def messageLimit = 8
+  * def messageLimit = 25
   * def initialVisitorId = visitorRotation.initialize(baseVisitorId, messageLimit)
   * karate.log('Visitor rotation initialized - Base ID:', baseVisitorId, '| Limit:', messageLimit)
 
-  # Track results
-  * def results = { passed: 0, failed: 0, errors: [] }
+  # Track results - grouped by test message/traceId
+  * def results = { passed: 0, failed: 0, testFailures: {} }
 
   # Store references for use in function
   * def cmsBaseUrl = cmsBase
-  * def token = authToken
 
   # Process each test case
   * def runTest =
@@ -56,6 +65,7 @@ Scenario: Run all enabled tests from Google Sheets
     function(testCase) {
       var utils = karate.get('utils');
       var visitorRotation = karate.get('visitorRotation');
+      var baseUrl = karate.get('baseUrl');
       var tenantId = testCase.tenantId;
       var tenantName = testCase.tenantName;
       var content = testCase.content;
@@ -67,6 +77,27 @@ Scenario: Run all enabled tests from Google Sheets
 
       var results = karate.get('results');
 
+      // Helper function to record agent failure
+      function recordAgentFailure(testKey, agentName, errorDetails, responseLLM, expected, actual) {
+        if (!results.testFailures[testKey]) {
+          results.testFailures[testKey] = {
+            tenant: tenantName,
+            tenantId: tenantId,
+            content: content,
+            traceId: testKey.split('||')[1] || 'N/A',
+            agentFailures: []
+          };
+        }
+        var failureEntry = {
+          agent: agentName,
+          error: errorDetails,
+          responseLLM: responseLLM || ''
+        };
+        if (expected !== undefined) failureEntry.expected = expected;
+        if (actual !== undefined) failureEntry.actual = actual;
+        results.testFailures[testKey].agentFailures.push(failureEntry);
+      }
+
       karate.log('');
       karate.log('========================================');
       karate.log('Testing:', content);
@@ -74,6 +105,7 @@ Scenario: Run all enabled tests from Google Sheets
       karate.log('Expected Safe:', expectedSafe);
       karate.log('SessionId:', sessionId);
       karate.log('VisitorId:', visitorId);
+      karate.log('Using baseUrl:', baseUrl);
       karate.log('========================================');
 
       var traceId = null;
@@ -85,6 +117,7 @@ Scenario: Run all enabled tests from Google Sheets
         // 1) Get TraceId from Chat API
         karate.log('Step 1: Getting TraceId from Chat API...');
         var chat = karate.call('classpath:com/preezie/services/chat/get-trace-id.feature', {
+          baseUrl: baseUrl,
           content: content,
           tenantId: tenantId,
           sessionId: sessionId,
@@ -96,28 +129,57 @@ Scenario: Run all enabled tests from Google Sheets
 
         if (!chat.traceId) {
           testHasFailures = true;
-          results.errors.push({
-            tenant: tenantName,
-            tenantId: tenantId,
-            content: content,
-            traceId: 'N/A',
-            stage: 'Chat API',
-            error: 'No traceId returned'
-          });
+          // Create failure entry for this test
+          testKey = content + '||NO_TRACE';
+          recordAgentFailure(testKey, 'Chat API', 'No traceId returned', '');
           karate.log('[FAILED] No traceId returned');
           // Cannot continue without traceId - this is a hard failure
           results.failed++;
           return;
         }
         traceId = chat.traceId;
+        testKey = content + '||' + traceId;  // Unique key for this test
         karate.log('TraceId:', chat.traceId);
 
-        // 2) CMS trace lookup
-        karate.log('Step 2: CMS trace lookup...');
+        // 2) Login to CMS (Firebase) to obtain bearer token
+        karate.log('Step 2: Logging in to CMS auth...');
+        var firebaseApiKey = karate.get('firebaseApiKeyConfig');
+        var firebaseEmail = karate.get('firebaseEmailConfig');
+        var firebasePassword = karate.get('firebasePasswordConfig');
+
+        if (!firebaseApiKey || !firebaseEmail || !firebasePassword) {
+          testHasFailures = true;
+          recordAgentFailure(
+            testKey,
+            'CMS Auth',
+            'Missing Firebase auth config. Set FIREBASE_API_KEY, FIREBASE_EMAIL, and FIREBASE_PASSWORD.',
+            ''
+          );
+          karate.log('[FAILED] Missing Firebase auth config');
+          results.failed++;
+          return;
+        }
+
+        var loginResult = karate.call('classpath:com/preezie/services/auth/firebase-login.feature', {
+          firebaseApiKey: firebaseApiKey,
+          firebaseEmail: firebaseEmail,
+          firebasePassword: firebasePassword
+        });
+        var cmsToken = loginResult ? loginResult.idToken : null;
+        if (!cmsToken) {
+          testHasFailures = true;
+          recordAgentFailure(testKey, 'CMS Auth', 'Firebase login did not return idToken', '');
+          karate.log('[FAILED] CMS auth returned no idToken');
+          results.failed++;
+          return;
+        }
+
+        // 3) CMS trace lookup using bearer token
+        karate.log('Step 3: CMS trace lookup...');
         var cmsResponse = karate.call('classpath:com/preezie/services/cms/get-trace-data.feature', {
           cmsBase: karate.get('cmsBaseUrl'),
           traceId: chat.traceId,
-          cmsIdToken: karate.get('token')
+          cmsIdToken: cmsToken
         });
 
         var traceData = cmsResponse.data;
@@ -127,8 +189,8 @@ Scenario: Run all enabled tests from Google Sheets
           karate.log('All agent names in trace:', JSON.stringify(agentNames));
         }
 
-        // 3) Validate promptGlobalFilter.Safe (HARD validation - stops if failed)
-        karate.log('Step 3: Validating promptGlobalFilter.Safe...');
+        // 4) Validate promptGlobalFilter.Safe (HARD validation - stops if failed)
+        karate.log('Step 4: Validating promptGlobalFilter.Safe...');
         var pgf = karate.call('classpath:com/preezie/services/cms/extract-agent-json-key.feature', {
           data: traceData,
           agentName: 'promptGlobalFilter',
@@ -138,15 +200,14 @@ Scenario: Run all enabled tests from Google Sheets
 
         if (pgf.value !== expectedSafe) {
           testHasFailures = true;
-          results.errors.push({
-            tenant: tenantName,
-            tenantId: tenantId,
-            content: content,
-            traceId: traceId,
-            stage: 'promptGlobalFilter',
-            expected: expectedSafe,
-            actual: pgf.value
-          });
+          recordAgentFailure(
+            testKey,
+            'promptGlobalFilter',
+            'Expected: ' + expectedSafe + ', Actual: ' + pgf.value,
+            '',
+            expectedSafe,
+            pgf.value
+          );
           karate.log('[FAILED] promptGlobalFilter - Expected:', expectedSafe, 'Actual:', pgf.value);
           // promptGlobalFilter is a hard validation - if Safe doesn't match, stop
           results.failed++;
@@ -157,8 +218,8 @@ Scenario: Run all enabled tests from Google Sheets
         // AI JUDGE SOFT VALIDATIONS - Continue even on failure
         // ======================================================================
 
-        // 4) Validate getIntentSummary with LLM evaluator (SOFT validation)
-        karate.log('Step 4: Validating getIntentSummary with LLM evaluator...');
+        // 5) Validate getIntentSummary with LLM evaluator (SOFT validation)
+        karate.log('Step 5: Validating getIntentSummary with LLM evaluator...');
         var intentSummaryItems = karate.filter(traceData, function(x){ return x.agentName == 'getIntentSummary' });
         karate.log('getIntentSummary items found:', intentSummaryItems.length);
 
@@ -194,15 +255,12 @@ Scenario: Run all enabled tests from Google Sheets
             errorDetails = utils.buildReport(null, null, 'getIntentSummary');
           }
 
-          results.errors.push({
-            tenant: tenantName,
-            tenantId: tenantId,
-            content: content,
-            traceId: traceId,
-            stage: 'getIntentSummary',
-            error: errorDetails,
-            responseLLM: llmResponseText ? (llmResponseText.length > 300 ? llmResponseText.substring(0, 300) + '...' : llmResponseText) : ''
-          });
+          recordAgentFailure(
+            testKey,
+            'getIntentSummary',
+            errorDetails,
+            llmResponseText ? (llmResponseText.length > 300 ? llmResponseText.substring(0, 300) + '...' : llmResponseText) : ''
+          );
           karate.log('[SOFT FAIL] getIntentSummary validation:', errorDetails);
           // Continue to next validation (soft validation mode)
         }
@@ -246,15 +304,12 @@ Scenario: Run all enabled tests from Google Sheets
               intentErrorDetails = utils.buildReport(intentValidation, parsedIntentContent, 'getIntent');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'getIntent',
-              error: intentErrorDetails,
-              responseLLM: intentLlmResponseText ? (intentLlmResponseText.length > 300 ? intentLlmResponseText.substring(0, 300) + '...' : intentLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'getIntent',
+              intentErrorDetails,
+              intentLlmResponseText ? (intentLlmResponseText.length > 300 ? intentLlmResponseText.substring(0, 300) + '...' : intentLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] getIntent validation:', intentErrorDetails);
             // Continue to next validation (soft validation mode)
           }
@@ -301,15 +356,12 @@ Scenario: Run all enabled tests from Google Sheets
               categoriesErrorDetails = utils.buildReport(categoriesValidation, parsedCategoriesContent, 'getCategories');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'getCategories',
-              error: categoriesErrorDetails,
-              responseLLM: categoriesLlmResponseText ? (categoriesLlmResponseText.length > 300 ? categoriesLlmResponseText.substring(0, 300) + '...' : categoriesLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'getCategories',
+              categoriesErrorDetails,
+              categoriesLlmResponseText ? (categoriesLlmResponseText.length > 300 ? categoriesLlmResponseText.substring(0, 300) + '...' : categoriesLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] getCategories validation:', categoriesErrorDetails);
             // Continue to next validation (soft validation mode)
           }
@@ -356,15 +408,12 @@ Scenario: Run all enabled tests from Google Sheets
               findProductErrorDetails = utils.buildReport(findProductValidation, parsedFindProductContent, 'findProductFromPrompt');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'findProductFromPrompt',
-              error: findProductErrorDetails,
-              responseLLM: findProductLlmResponseText ? (findProductLlmResponseText.length > 300 ? findProductLlmResponseText.substring(0, 300) + '...' : findProductLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'findProductFromPrompt',
+              findProductErrorDetails,
+              findProductLlmResponseText ? (findProductLlmResponseText.length > 300 ? findProductLlmResponseText.substring(0, 300) + '...' : findProductLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] findProductFromPrompt validation:', findProductErrorDetails);
             // Continue to next validation (soft validation mode)
           }
@@ -411,15 +460,12 @@ Scenario: Run all enabled tests from Google Sheets
               smartResponseErrorDetails = utils.buildReport(smartResponseValidation, parsedSmartResponseContent, 'smartResponse');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'smartResponse',
-              error: smartResponseErrorDetails,
-              responseLLM: smartResponseLlmResponseText ? (smartResponseLlmResponseText.length > 300 ? smartResponseLlmResponseText.substring(0, 300) + '...' : smartResponseLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'smartResponse',
+              smartResponseErrorDetails,
+              smartResponseLlmResponseText ? (smartResponseLlmResponseText.length > 300 ? smartResponseLlmResponseText.substring(0, 300) + '...' : smartResponseLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] smartResponse validation:', smartResponseErrorDetails);
             // Continue to next validation (soft validation mode)
           }
@@ -466,15 +512,12 @@ Scenario: Run all enabled tests from Google Sheets
               getUserInformationErrorDetails = utils.buildReport(getUserInformationValidation, parsedGetUserInformationContent, 'getUserInformation');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'getUserInformation',
-              error: getUserInformationErrorDetails,
-              responseLLM: getUserInformationLlmResponseText ? (getUserInformationLlmResponseText.length > 300 ? getUserInformationLlmResponseText.substring(0, 300) + '...' : getUserInformationLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'getUserInformation',
+              getUserInformationErrorDetails,
+              getUserInformationLlmResponseText ? (getUserInformationLlmResponseText.length > 300 ? getUserInformationLlmResponseText.substring(0, 300) + '...' : getUserInformationLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] getUserInformation validation:', getUserInformationErrorDetails);
             // Continue to next validation (soft validation mode)
           }
@@ -521,15 +564,12 @@ Scenario: Run all enabled tests from Google Sheets
               specificQuestionSubIntentErrorDetails = utils.buildReport(specificQuestionSubIntentValidation, parsedSpecificQuestionSubIntentContent, 'getSpecificQuestionSubIntent');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'getSpecificQuestionSubIntent',
-              error: specificQuestionSubIntentErrorDetails,
-              responseLLM: specificQuestionSubIntentLlmResponseText ? (specificQuestionSubIntentLlmResponseText.length > 300 ? specificQuestionSubIntentLlmResponseText.substring(0, 300) + '...' : specificQuestionSubIntentLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'getSpecificQuestionSubIntent',
+              specificQuestionSubIntentErrorDetails,
+              specificQuestionSubIntentLlmResponseText ? (specificQuestionSubIntentLlmResponseText.length > 300 ? specificQuestionSubIntentLlmResponseText.substring(0, 300) + '...' : specificQuestionSubIntentLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] getSpecificQuestionSubIntent validation:', specificQuestionSubIntentErrorDetails);
             // Continue (soft validation mode) - this is the last validation anyway
           }
@@ -576,15 +616,12 @@ Scenario: Run all enabled tests from Google Sheets
               multiProductQuestionSubIntentErrorDetails = utils.buildReport(multiProductQuestionSubIntentValidation, parsedMultiProductQuestionSubIntentContent, 'getMultiProductQuestionSubIntent');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'getMultiProductQuestionSubIntent',
-              error: multiProductQuestionSubIntentErrorDetails,
-              responseLLM: multiProductQuestionSubIntentLlmResponseText ? (multiProductQuestionSubIntentLlmResponseText.length > 300 ? multiProductQuestionSubIntentLlmResponseText.substring(0, 300) + '...' : multiProductQuestionSubIntentLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'getMultiProductQuestionSubIntent',
+              multiProductQuestionSubIntentErrorDetails,
+              multiProductQuestionSubIntentLlmResponseText ? (multiProductQuestionSubIntentLlmResponseText.length > 300 ? multiProductQuestionSubIntentLlmResponseText.substring(0, 300) + '...' : multiProductQuestionSubIntentLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] getMultiProductQuestionSubIntent validation:', multiProductQuestionSubIntentErrorDetails);
             // Continue (soft validation mode)
           }
@@ -631,15 +668,12 @@ Scenario: Run all enabled tests from Google Sheets
               specificProductQuestionErrorDetails = utils.buildReport(specificProductQuestionValidation, parsedSpecificProductQuestionContent, 'specificProductQuestion');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'specificProductQuestion',
-              error: specificProductQuestionErrorDetails,
-              responseLLM: specificProductQuestionLlmResponseText ? (specificProductQuestionLlmResponseText.length > 300 ? specificProductQuestionLlmResponseText.substring(0, 300) + '...' : specificProductQuestionLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'specificProductQuestion',
+              specificProductQuestionErrorDetails,
+              specificProductQuestionLlmResponseText ? (specificProductQuestionLlmResponseText.length > 300 ? specificProductQuestionLlmResponseText.substring(0, 300) + '...' : specificProductQuestionLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] specificProductQuestion validation:', specificProductQuestionErrorDetails);
             // Continue (soft validation mode)
           }
@@ -686,15 +720,12 @@ Scenario: Run all enabled tests from Google Sheets
               searchingByTitleErrorDetails = utils.buildReport(searchingByTitleValidation, parsedSearchingByTitleContent, 'searchingByTitle');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'searchingByTitle',
-              error: searchingByTitleErrorDetails,
-              responseLLM: searchingByTitleLlmResponseText ? (searchingByTitleLlmResponseText.length > 300 ? searchingByTitleLlmResponseText.substring(0, 300) + '...' : searchingByTitleLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'searchingByTitle',
+              searchingByTitleErrorDetails,
+              searchingByTitleLlmResponseText ? (searchingByTitleLlmResponseText.length > 300 ? searchingByTitleLlmResponseText.substring(0, 300) + '...' : searchingByTitleLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] searchingByTitle validation:', searchingByTitleErrorDetails);
             // Continue (soft validation mode)
           }
@@ -741,15 +772,12 @@ Scenario: Run all enabled tests from Google Sheets
               specificProductQuestionResponseErrorDetails = utils.buildReport(specificProductQuestionResponseValidation, parsedSpecificProductQuestionResponseContent, 'specificProductQuestionResponse');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'specificProductQuestionResponse',
-              error: specificProductQuestionResponseErrorDetails,
-              responseLLM: specificProductQuestionResponseLlmResponseText ? (specificProductQuestionResponseLlmResponseText.length > 300 ? specificProductQuestionResponseLlmResponseText.substring(0, 300) + '...' : specificProductQuestionResponseLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'specificProductQuestionResponse',
+              specificProductQuestionResponseErrorDetails,
+              specificProductQuestionResponseLlmResponseText ? (specificProductQuestionResponseLlmResponseText.length > 300 ? specificProductQuestionResponseLlmResponseText.substring(0, 300) + '...' : specificProductQuestionResponseLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] specificProductQuestionResponse validation:', specificProductQuestionResponseErrorDetails);
             // Continue (soft validation mode)
           }
@@ -815,15 +843,12 @@ Scenario: Run all enabled tests from Google Sheets
               specificProductSizeRecommendationErrorDetails = utils.buildReport(specificProductSizeRecommendationValidation, parsedSpecificProductSizeRecommendationContent, 'specificProductSizeRecommendation');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'specificProductSizeRecommendation',
-              error: specificProductSizeRecommendationErrorDetails,
-              responseLLM: specificProductSizeRecommendationLlmResponseText ? (specificProductSizeRecommendationLlmResponseText.length > 300 ? specificProductSizeRecommendationLlmResponseText.substring(0, 300) + '...' : specificProductSizeRecommendationLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'specificProductSizeRecommendation',
+              specificProductSizeRecommendationErrorDetails,
+              specificProductSizeRecommendationLlmResponseText ? (specificProductSizeRecommendationLlmResponseText.length > 300 ? specificProductSizeRecommendationLlmResponseText.substring(0, 300) + '...' : specificProductSizeRecommendationLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] specificProductSizeRecommendation validation:', specificProductSizeRecommendationErrorDetails);
             // Continue (soft validation mode)
           }
@@ -870,15 +895,12 @@ Scenario: Run all enabled tests from Google Sheets
               similarBaseProductErrorDetails = utils.buildReport(similarBaseProductValidation, parsedSimilarBaseProductContent, 'similarBaseProduct');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'similarBaseProduct',
-              error: similarBaseProductErrorDetails,
-              responseLLM: similarBaseProductLlmResponseText ? (similarBaseProductLlmResponseText.length > 300 ? similarBaseProductLlmResponseText.substring(0, 300) + '...' : similarBaseProductLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'similarBaseProduct',
+              similarBaseProductErrorDetails,
+              similarBaseProductLlmResponseText ? (similarBaseProductLlmResponseText.length > 300 ? similarBaseProductLlmResponseText.substring(0, 300) + '...' : similarBaseProductLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] similarBaseProduct validation:', similarBaseProductErrorDetails);
             // Continue (soft validation mode)
           }
@@ -925,15 +947,12 @@ Scenario: Run all enabled tests from Google Sheets
               productCompareResponseErrorDetails = utils.buildReport(productCompareResponseValidation, parsedProductCompareResponseContent, 'productCompareResponse');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'productCompareResponse',
-              error: productCompareResponseErrorDetails,
-              responseLLM: productCompareResponseLlmResponseText ? (productCompareResponseLlmResponseText.length > 300 ? productCompareResponseLlmResponseText.substring(0, 300) + '...' : productCompareResponseLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'productCompareResponse',
+              productCompareResponseErrorDetails,
+              productCompareResponseLlmResponseText ? (productCompareResponseLlmResponseText.length > 300 ? productCompareResponseLlmResponseText.substring(0, 300) + '...' : productCompareResponseLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] productCompareResponse validation:', productCompareResponseErrorDetails);
             // Continue (soft validation mode)
           }
@@ -980,15 +999,12 @@ Scenario: Run all enabled tests from Google Sheets
               findBaseProductErrorDetails = utils.buildReport(findBaseProductValidation, parsedFindBaseProductContent, 'findBaseProduct');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'findBaseProduct',
-              error: findBaseProductErrorDetails,
-              responseLLM: findBaseProductLlmResponseText ? (findBaseProductLlmResponseText.length > 300 ? findBaseProductLlmResponseText.substring(0, 300) + '...' : findBaseProductLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'findBaseProduct',
+              findBaseProductErrorDetails,
+              findBaseProductLlmResponseText ? (findBaseProductLlmResponseText.length > 300 ? findBaseProductLlmResponseText.substring(0, 300) + '...' : findBaseProductLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] findBaseProduct validation:', findBaseProductErrorDetails);
             // Continue (soft validation mode)
           }
@@ -1034,15 +1050,12 @@ Scenario: Run all enabled tests from Google Sheets
               findProductsToBundleErrorDetails = utils.buildReport(findProductsToBundleValidation, parsedFindProductsToBundleContent, 'findProductsToBundle');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'findProductsToBundle',
-              error: findProductsToBundleErrorDetails,
-              responseLLM: findProductsToBundleLlmResponseText ? (findProductsToBundleLlmResponseText.length > 300 ? findProductsToBundleLlmResponseText.substring(0, 300) + '...' : findProductsToBundleLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'findProductsToBundle',
+              findProductsToBundleErrorDetails,
+              findProductsToBundleLlmResponseText ? (findProductsToBundleLlmResponseText.length > 300 ? findProductsToBundleLlmResponseText.substring(0, 300) + '...' : findProductsToBundleLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] findProductsToBundle validation:', findProductsToBundleErrorDetails);
             // Continue (soft validation mode)
           }
@@ -1088,15 +1101,12 @@ Scenario: Run all enabled tests from Google Sheets
               generalConversationErrorDetails = utils.buildReport(generalConversationValidation, parsedGeneralConversationContent, 'generalConversation');
             }
 
-            results.errors.push({
-              tenant: tenantName,
-              tenantId: tenantId,
-              content: content,
-              traceId: traceId,
-              stage: 'generalConversation',
-              error: generalConversationErrorDetails,
-              responseLLM: generalConversationLlmResponseText ? (generalConversationLlmResponseText.length > 300 ? generalConversationLlmResponseText.substring(0, 300) + '...' : generalConversationLlmResponseText) : ''
-            });
+            recordAgentFailure(
+              testKey,
+              'generalConversation',
+              generalConversationErrorDetails,
+              generalConversationLlmResponseText ? (generalConversationLlmResponseText.length > 300 ? generalConversationLlmResponseText.substring(0, 300) + '...' : generalConversationLlmResponseText) : ''
+            );
             karate.log('[SOFT FAIL] generalConversation validation:', generalConversationErrorDetails);
             // Continue (soft validation mode)
           }
@@ -1114,14 +1124,8 @@ Scenario: Run all enabled tests from Google Sheets
 
       } catch (e) {
         results.failed++;
-        results.errors.push({
-          tenant: tenantName,
-          tenantId: tenantId,
-          content: content,
-          traceId: traceId || 'N/A',
-          stage: 'Exception',
-          error: e.message || String(e)
-        });
+        var exceptionKey = content + '||' + (traceId || 'EXCEPTION');
+        recordAgentFailure(exceptionKey, 'Exception', e.message || String(e), '');
         karate.log('[ERROR]', e.message || e);
       }
     }
@@ -1131,7 +1135,7 @@ Scenario: Run all enabled tests from Google Sheets
   * karate.forEach(allTestData, runTest)
 
   # Print summary
-  * karate.log('\\n============================================')
+  * karate.log('\n============================================')
   * karate.log('           TEST RESULTS SUMMARY              ')
   * karate.log('============================================')
   * karate.log('Total Tests:', allTestData.length)
@@ -1140,44 +1144,59 @@ Scenario: Run all enabled tests from Google Sheets
   * karate.log('Pass Rate:', Math.round((results.passed / allTestData.length) + '%'))
   * karate.log('============================================')
 
-  # Print failed tests details
+  # Print failed tests details - GROUPED BY MESSAGE/TRACEID
   * eval
     """
-    if (results.errors.length > 0) {
+    var failureKeys = Object.keys(results.testFailures);
+    if (failureKeys.length > 0) {
       karate.log('');
-      karate.log('================== FAILED TESTS DETAILS ==================');
-      for (var i = 0; i < results.errors.length; i++) {
-        var err = results.errors[i];
+      karate.log('================== FAILED TESTS DETAILS (GROUPED) ==================');
+
+      for (var i = 0; i < failureKeys.length; i++) {
+        var testFailure = results.testFailures[failureKeys[i]];
+
         karate.log('');
-        karate.log('[FAILURE ' + (i + 1) + ' of ' + results.errors.length + ']');
-        karate.log('  Tenant:    ' + err.tenant + ' (' + err.tenantId + ')');
-        karate.log('  Content:   ' + err.content);
-        karate.log('  TraceId:   ' + (err.traceId || 'N/A'));
-        karate.log('  Failed At: ' + err.stage);
-        if (err.expected !== undefined) {
-          karate.log('  Expected:  ' + err.expected);
-          karate.log('  Actual:    ' + err.actual);
-        }
-        if (err.error) {
-          karate.log('  ── AI Judge Report ─────────────────────────────────');
-          var reportLines = err.error.split('\n');
-          for (var j = 0; j < reportLines.length; j++) {
-            karate.log(reportLines[j]);
+        karate.log('══════════════════════════════════════════════════════════');
+        karate.log('[FAILED TEST ' + (i + 1) + ' of ' + failureKeys.length + ']');
+        karate.log('══════════════════════════════════════════════════════════');
+        karate.log('Message:   ' + testFailure.content);
+        karate.log('Trace ID:  ' + testFailure.traceId);
+        karate.log('Tenant:    ' + testFailure.tenant + ' (' + testFailure.tenantId + ')');
+        karate.log('');
+        karate.log('List of agents failed: ' + testFailure.agentFailures.length);
+        karate.log('──────────────────────────────────────────────────────────');
+
+        for (var j = 0; j < testFailure.agentFailures.length; j++) {
+          var agentFailure = testFailure.agentFailures[j];
+          karate.log('');
+          karate.log('  ' + (j + 1) + '. ' + agentFailure.agent + ':');
+
+          if (agentFailure.expected !== undefined) {
+            karate.log('     Expected: ' + agentFailure.expected);
+            karate.log('     Actual:   ' + agentFailure.actual);
           }
-          karate.log('  ────────────────────────────────────────────────────');
-        }
-        if (err.responseLLM) {
-          karate.log('  Actual LLM Response:');
-          karate.log('    ' + err.responseLLM);
+
+          if (agentFailure.error) {
+            karate.log('     ── Details ──────────────────────────────');
+            var errorLines = agentFailure.error.split('\\n');
+            for (var k = 0; k < errorLines.length; k++) {
+              karate.log('     ' + errorLines[k]);
+            }
+            karate.log('     ─────────────────────────────────────────');
+          }
+
+          if (agentFailure.responseLLM && agentFailure.responseLLM.length > 0) {
+            karate.log('     LLM Response: ' + agentFailure.responseLLM);
+          }
         }
       }
       karate.log('');
-      karate.log('===========================================================');
+      karate.log('═══════════════════════════════════════════════════════════════════');
     }
     """
 
   # Store results for external access (by test runner for Google Sheets export)
-  * def testResults = { totalTests: allTestData.length, passed: results.passed, failed: results.failed, errors: results.errors, spreadsheetId: spreadsheetId }
+  * def testResults = { totalTests: allTestData.length, passed: results.passed, failed: results.failed, testFailures: results.testFailures, spreadsheetId: spreadsheetId }
   * karate.set('testResultsForExport', testResults)
 
   # Write results to JSON file for the test runner to read
@@ -1188,25 +1207,36 @@ Scenario: Run all enabled tests from Google Sheets
       var projectDir = java.lang.System.getProperty('user.dir');
       var filePath = projectDir + '/target/test-results.json';
 
+      // Convert testFailures object to array of failures
+      var failuresArray = [];
+      var failureKeys = Object.keys(results.testFailures);
+      for (var i = 0; i < failureKeys.length; i++) {
+        var testFailure = results.testFailures[failureKeys[i]];
+        failuresArray.push({
+          tenantId: testFailure.tenantId || '',
+          tenantName: testFailure.tenant || 'Unknown',
+          content: testFailure.content || '',
+          traceId: testFailure.traceId || 'N/A',
+          agentsFailed: testFailure.agentFailures.map(function(af) {
+            return {
+              agent: af.agent,
+              error: af.error || '',
+              expected: af.expected !== undefined ? String(af.expected) : '',
+              actual: af.actual !== undefined ? String(af.actual) : '',
+              responseLLM: af.responseLLM || ''
+            };
+          })
+        });
+      }
+
       var jsonResults = {
         totalTests: allTestData.length,
         passed: results.passed,
         failed: results.failed,
         passRate: allTestData.length > 0 ? Math.round((results.passed / allTestData.length) * 100) : 0,
-        errors: results.errors.map(function(err) {
-          return {
-            tenantId: err.tenantId || '',
-            tenantName: err.tenant || 'Unknown',
-            content: err.content || '',
-            traceId: err.traceId || 'N/A',
-            failedStage: err.stage || '',
-            expected: err.expected !== undefined ? String(err.expected) : '',
-            actual: err.actual !== undefined ? String(err.actual) : '',
-            errorMessage: err.error || '',
-            responseLLM: err.responseLLM || ''
-          };
-        })
+        failures: failuresArray
       };
+
 
       var writer = new FileWriter(filePath);
       writer.write(JSON.stringify(jsonResults, null, 2));

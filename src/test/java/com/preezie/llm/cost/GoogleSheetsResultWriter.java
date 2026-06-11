@@ -556,28 +556,6 @@ public class GoogleSheetsResultWriter {
             data.add(Arrays.asList("Avg Prompt Tokens/Evaluation", String.format("%.2f", cost.getAvgPromptTokensPerRequest())));
             data.add(Arrays.asList("Avg Completion Tokens/Evaluation", String.format("%.2f", cost.getAvgCompletionTokensPerRequest())));
             data.add(Arrays.asList("")); // Empty row
-            
-            // Detailed Usage Data
-            if (cost.getUsageDetails() != null && !cost.getUsageDetails().isEmpty()) {
-                data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
-                data.add(Arrays.asList("DETAILED USAGE PER REQUEST"));
-                data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
-                data.add(Arrays.asList("Tenant ID", "Content", "Model", "Prompt Tokens", "Completion Tokens", "Total Tokens", "Input Cost", "Output Cost", "Total Cost"));
-                
-                for (UsageDetail detail : cost.getUsageDetails()) {
-                    data.add(Arrays.asList(
-                        detail.getTenantId(),
-                        detail.getContent(),
-                        detail.getModelName(),
-                        detail.getPromptTokens(),
-                        detail.getCompletionTokens(),
-                        detail.getTotalTokens(),
-                        String.format("$%.6f", detail.getInputCost()),
-                        String.format("$%.6f", detail.getOutputCost()),
-                        String.format("$%.6f", detail.getTotalCost())
-                    ));
-                }
-            }
         }
         
         // Write data to sheet
