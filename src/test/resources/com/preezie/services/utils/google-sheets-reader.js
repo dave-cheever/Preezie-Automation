@@ -177,6 +177,22 @@
     return allTestData;
   }
 
+  /**
+   * Get environment name from Google Sheets config sheet
+   * @param {string} spreadsheetId - The Google Sheets spreadsheet ID
+   * @returns {string} Environment name (dev, staging, or prod) - defaults to 'dev'
+   */
+  function getEnvironmentFromConfig(spreadsheetId) {
+    var config = getConfigValues(spreadsheetId);
+
+    // Support both 'environment' and 'env' keys
+    var env = config.environment || config.env || 'dev';
+    var normalized = env.toLowerCase().trim();
+
+    karate.log('📋 Environment from Google Sheets config:', normalized);
+    return normalized;
+  }
+
   return {
     fetchSheetAsCsv: fetchSheetAsCsv,
     parseCsvLine: parseCsvLine,
@@ -184,7 +200,8 @@
     getTenantConfig: getTenantConfig,
     getTestDataForTenant: getTestDataForTenant,
     getAllEnabledTestData: getAllEnabledTestData,
-    getConfigValues: getConfigValues
+    getConfigValues: getConfigValues,
+    getEnvironmentFromConfig: getEnvironmentFromConfig
   };
 
 })()

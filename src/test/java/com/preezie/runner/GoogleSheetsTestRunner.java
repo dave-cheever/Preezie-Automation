@@ -94,14 +94,18 @@ public class GoogleSheetsTestRunner {
         int passed;
         int failed;
         int passRate;
-        List<FailedTestData> errors = new ArrayList<>();
+        List<FailedTestCase> failedTestCases = new ArrayList<>();
     }
     
-    static class FailedTestData {
+    static class FailedTestCase {
         String tenantId;
         String tenantName;
         String content;
         String traceId;
+        List<AgentFailure> agentFailures = new ArrayList<>();
+    }
+    
+    static class AgentFailure {
         String failedStage;
         String expected;
         String actual;
@@ -124,20 +128,32 @@ public class GoogleSheetsTestRunner {
             data.failed = root.path("failed").asInt(0);
             data.passRate = root.path("passRate").asInt(0);
             
-            JsonNode errorsNode = root.path("errors");
-            if (errorsNode.isArray()) {
-                for (JsonNode errorNode : errorsNode) {
-                    FailedTestData failedTest = new FailedTestData();
-                    failedTest.tenantId = errorNode.path("tenantId").asText("");
-                    failedTest.tenantName = errorNode.path("tenantName").asText("Unknown");
-                    failedTest.content = errorNode.path("content").asText("");
-                    failedTest.traceId = errorNode.path("traceId").asText("N/A");
-                    failedTest.failedStage = errorNode.path("failedStage").asText("");
-                    failedTest.expected = errorNode.path("expected").asText("");
-                    failedTest.actual = errorNode.path("actual").asText("");
-                    failedTest.errorMessage = errorNode.path("errorMessage").asText("");
-                    failedTest.responseLLM = errorNode.path("responseLLM").asText("");
-                    data.errors.add(failedTest);
+            // Read "failures" array (not "errors") - matches what the feature file writes
+            JsonNode failuresNode = root.path("failures");
+            if (failuresNode.isArray()) {
+                for (JsonNode failureNode : failuresNode) {
+                    // Create a test case for each failure
+                    FailedTestCase testCase = new FailedTestCase();
+                    testCase.tenantId = failureNode.path("tenantId").asText("");
+                    testCase.tenantName = failureNode.path("tenantName").asText("Unknown");
+                    testCase.content = failureNode.path("content").asText("");
+                    testCase.traceId = failureNode.path("traceId").asText("N/A");
+                    
+                    // Each test case contains multiple agent failures
+                    JsonNode agentsFailedNode = failureNode.path("agentsFailed");
+                    if (agentsFailedNode.isArray()) {
+                        for (JsonNode agentFailure : agentsFailedNode) {
+                            AgentFailure agentFail = new AgentFailure();
+                            agentFail.failedStage = agentFailure.path("agent").asText("");
+                            agentFail.expected = agentFailure.path("expected").asText("");
+                            agentFail.actual = agentFailure.path("actual").asText("");
+                            agentFail.errorMessage = agentFailure.path("error").asText("");
+                            agentFail.responseLLM = agentFailure.path("responseLLM").asText("");
+                            testCase.agentFailures.add(agentFail);
+                        }
+                    }
+                    
+                    data.failedTestCases.add(testCase);
                 }
             }
             
@@ -167,25 +183,33 @@ public class GoogleSheetsTestRunner {
         System.out.println("╚══════════════════════════════════════════════════════════════╝");
         
         // Print failed test details
-        if (!actualResults.errors.isEmpty()) {
+        if (!actualResults.failedTestCases.isEmpty()) {
             System.out.println("\n");
             System.out.println("╔══════════════════════════════════════════════════════════════╗");
             System.out.println("║                    FAILED TESTS DETAILS                       ║");
             System.out.println("╚══════════════════════════════════════════════════════════════╝");
             
-            for (int i = 0; i < actualResults.errors.size(); i++) {
-                FailedTestData err = actualResults.errors.get(i);
-                System.out.println("\n--- Failure " + (i + 1) + " of " + actualResults.errors.size() + " ---");
-                System.out.println("  Tenant:      " + err.tenantName + " (" + err.tenantId + ")");
-                System.out.println("  Content:     " + err.content);
-                System.out.println("  Trace ID:    " + err.traceId);
-                System.out.println("  Failed At:   " + err.failedStage);
-                if (!err.expected.isEmpty()) {
-                    System.out.println("  Expected:    " + err.expected);
-                    System.out.println("  Actual:      " + err.actual);
-                }
-                if (!err.errorMessage.isEmpty()) {
-                    System.out.println("  Error:       " + err.errorMessage);
+            for (int i = 0; i < actualResults.failedTestCases.size(); i++) {
+                FailedTestCase testCase = actualResults.failedTestCases.get(i);
+                System.out.println("\n--- Failure " + (i + 1) + " of " + actualResults.failedTestCases.size() + " ---");
+                System.out.println("  Tenant:      " + testCase.tenantName + " (" + testCase.tenantId + ")");
+                System.out.println("  Content:     " + testCase.content);
+                System.out.println("  Trace ID:    " + testCase.traceId);
+                
+                // Display all failed agents for this test case
+                for (AgentFailure agentFail : testCase.agentFailures) {
+                    System.out.println("  Failed At:   " + agentFail.failedStage);
+                    if (!agentFail.expected.isEmpty()) {
+                        System.out.println("  Expected:    " + agentFail.expected);
+                        System.out.println("  Actual:      " + agentFail.actual);
+                    }
+                    if (!agentFail.errorMessage.isEmpty()) {
+                        System.out.println("  Error:       " + agentFail.errorMessage);
+                    }
+                    // Add blank line between agents if not the last one
+                    if (testCase.agentFailures.indexOf(agentFail) < testCase.agentFailures.size() - 1) {
+                        System.out.println();
+                    }
                 }
             }
             System.out.println("\n═══════════════════════════════════════════════════════════════");
@@ -250,15 +274,18 @@ public class GoogleSheetsTestRunner {
             testResults.setFailed(actualResults.failed);
             
             // Add failed test details from actual results
-            for (FailedTestData err : actualResults.errors) {
-                testResults.addFailedTest(new GoogleSheetsResultWriter.FailedTest(
-                    err.tenantId,
-                    err.tenantName,
-                    err.content,
-                    err.traceId,
-                    err.failedStage,
-                    buildErrorMessage(err)
-                ));
+            // Flatten the grouped structure for Google Sheets
+            for (FailedTestCase testCase : actualResults.failedTestCases) {
+                for (AgentFailure agentFail : testCase.agentFailures) {
+                    testResults.addFailedTest(new GoogleSheetsResultWriter.FailedTest(
+                        testCase.tenantId,
+                        testCase.tenantName,
+                        testCase.content,
+                        testCase.traceId,
+                        agentFail.failedStage,
+                        buildErrorMessage(agentFail)
+                    ));
+                }
             }
             
             // Add cost summary if available
@@ -594,27 +621,42 @@ public class GoogleSheetsTestRunner {
         }
     }
     
-    private String buildErrorMessage(FailedTestData err) {
+    private String buildErrorMessage(AgentFailure agentFail) {
         StringBuilder sb = new StringBuilder();
         
         // For promptGlobalFilter and getIntent - show expected vs actual
-        if (!err.expected.isEmpty() && !err.actual.isEmpty()) {
-            sb.append("Expected: ").append(err.expected).append(", Actual: ").append(err.actual);
+        if (!agentFail.expected.isEmpty() && !agentFail.actual.isEmpty()) {
+            sb.append("Expected: ").append(agentFail.expected)
+              .append("\n")
+              .append("Actual: ").append(agentFail.actual);
         }
         
         // Add the detailed error message (includes scores, issues, summary for getIntentSummary)
-        if (!err.errorMessage.isEmpty()) {
-            if (sb.length() > 0) sb.append(" | ");
-            sb.append(err.errorMessage);
+        if (!agentFail.errorMessage.isEmpty()) {
+            if (sb.length() > 0) sb.append("\n");
+            
+            // For getIntentSummary failures, format each score/issue on its own line
+            if (agentFail.errorMessage.contains(" | ")) {
+                String[] parts = agentFail.errorMessage.split(" \\| ");
+                for (String part : parts) {
+                    sb.append(part.trim()).append("\n");
+                }
+                // Remove trailing newline
+                if (sb.length() > 0 && sb.charAt(sb.length() - 1) == '\n') {
+                    sb.setLength(sb.length() - 1);
+                }
+            } else {
+                sb.append(agentFail.errorMessage);
+            }
         }
         
         // Add LLM response for getIntentSummary if not already in errorMessage
-        if (!err.responseLLM.isEmpty() && !err.errorMessage.contains("LLM")) {
-            if (sb.length() > 0) sb.append(" | ");
+        if (!agentFail.responseLLM.isEmpty() && !agentFail.errorMessage.contains("LLM")) {
+            if (sb.length() > 0) sb.append("\n");
             // Truncate long LLM responses for display
-            String llmText = err.responseLLM.length() > 200 
-                ? err.responseLLM.substring(0, 200) + "..." 
-                : err.responseLLM;
+            String llmText = agentFail.responseLLM.length() > 200 
+                ? agentFail.responseLLM.substring(0, 200) + "..." 
+                : agentFail.responseLLM;
             sb.append("LLM Response: ").append(llmText);
         }
         

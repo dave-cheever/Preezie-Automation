@@ -9,6 +9,8 @@ Feature: Chat service - send message and return traceId
     * match content != null
     * match content != ''
 
+    # Use baseUrl from parameters if provided, otherwise use from background/config
+    * def baseUrlLocal = __arg.baseUrl || karate.get('baseUrl')
     * def tenantIdLocal = __arg.tenantId || karate.get('tenantId')
     * def sessionIdLocal = __arg.sessionId || requestTemplate.sessionId
     * def visitorIdLocal = __arg.visitorId || requestTemplate.visitorId
@@ -22,10 +24,11 @@ Feature: Chat service - send message and return traceId
     * set req.lastContent = lastContentLocal
     * set req.visitorId = visitorIdLocal
 
-    Given url baseUrl
+    Given url baseUrlLocal
 
     And path '/api/chat'
     And header Tenantid = tenantIdLocal
+    And header Authorization = 'Bearer ' + cmsIdToken
     And request req
     When method post
     Then status 200

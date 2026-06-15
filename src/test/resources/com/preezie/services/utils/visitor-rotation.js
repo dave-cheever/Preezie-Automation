@@ -69,6 +69,23 @@
   }
 
   /**
+   * Force an immediate rotation to the next visitor ID
+   * Useful for starting a test run with a fresh visitor ID
+   */
+  function forceRotation() {
+    var base = karate.get('__vrBaseId');
+    var index = karate.get('__vrIndex') || 0;
+
+    index++;
+    karate.set('__vrIndex', index);
+    karate.set('__vrCount', 0); // Reset count for new visitor
+
+    var newId = base + '_' + index;
+    karate.log('[VisitorRotation] 🔄 Forced rotation to:', newId, '(rotation #' + index + ')');
+    return newId;
+  }
+
+  /**
    * Reset the rotation state (useful for starting a new test run)
    */
   function reset() {
@@ -104,8 +121,8 @@
     getNextVisitorId: getNextVisitorId,
     recordMessageSent: recordMessageSent,
     reset: reset,
-    getStats: getStats
+    getStats: getStats,
+    forceRotation: forceRotation
   };
 
 })()
-

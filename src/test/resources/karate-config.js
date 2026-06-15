@@ -53,6 +53,51 @@ function fn() {
     '1FV7pekpUKZ34VjDXuoslernJuGnx3jsjxJI5WkYsHVM'; // Your spreadsheet ID
 
   /**********************************************************
+   * Multi-Environment Configuration
+   **********************************************************/
+  // Environment configurations for dev, staging, and prod
+  config.environments = {
+    dev: {
+      chatBaseUrl: 'https://dev-greenback-app-chat.azurewebsites.net',
+      cmsBaseUrl: 'https://dev-greenback-app-cms-gateway.azurewebsites.net',
+      firebaseApiKey: 'AIzaSyDjEbvbB3xI2ZrHOYabTdl1DNaRzz2Yl80'
+    },
+    staging: {
+      chatBaseUrl: 'https://prod-greenback-app-chat-preview.azurewebsites.net',
+      cmsBaseUrl: 'https://prod-greenback-app-cms-gateway-preview.azurewebsites.net',
+      firebaseApiKey: 'AIzaSyA_wI3Cbepyi68qj9y7Cm1KLlBub8PhMNQ'
+    },
+    prod: {
+      chatBaseUrl: 'https://prod-greenback-app-chat.azurewebsites.net',
+      cmsBaseUrl: 'https://prod-greenback-app-cms-gateway.azurewebsites.net',
+      firebaseApiKey: 'AIzaSyA_wI3Cbepyi68qj9y7Cm1KLlBub8PhMNQ'
+    }
+  };
+
+  /**
+   * Get environment configuration by name
+   * @param {string} envName - Environment name (dev, staging, prod)
+   * @returns {object} Environment configuration with chatBaseUrl, cmsBaseUrl, and firebaseApiKey
+   */
+  config.getEnvironmentUrls = function(envName) {
+    var env = (envName || 'dev').toLowerCase().trim();
+    var envConfig = config.environments[env];
+
+    if (!envConfig) {
+      karate.log('⚠️  WARNING: Unknown environment "' + env + '", falling back to dev');
+      envConfig = config.environments.dev;
+      env = 'dev';
+    }
+
+    karate.log('🌍 Environment:', env.toUpperCase());
+    karate.log('   Chat URL:', envConfig.chatBaseUrl);
+    karate.log('   CMS URL:', envConfig.cmsBaseUrl);
+    karate.log('   Firebase Key:', envConfig.firebaseApiKey.substring(0, 20) + '...');
+
+    return envConfig;
+  };
+
+  /**********************************************************
    * Usage Tracker Configuration
    **********************************************************/
   config.usageTrackerUrl =
@@ -90,12 +135,17 @@ function fn() {
   /**********************************************************
    * Firebase / CMS Authentication Configuration
    **********************************************************/
+  // Firebase API key can be explicitly set or will default to dev
+  // Priority: Explicit env var > dotenv > default to dev key
+  // Note: Make sure your Firebase credentials are registered in the Firebase project
+  // corresponding to the API key you're using
 
   config.firebaseApiKey =
     karate.properties['firebaseApiKey'] ||
     java.lang.System.getProperty('firebaseApiKey') ||
     java.lang.System.getenv('FIREBASE_API_KEY') ||
-    dotenv['FIREBASE_API_KEY'];
+    dotenv['FIREBASE_API_KEY'] ||
+    config.environments.dev.firebaseApiKey; // Default to dev if not specified
 
   config.firebaseEmail =
     karate.properties['firebaseEmail'] ||
@@ -119,10 +169,16 @@ function fn() {
     karate.properties['cmsBaseUrl'] ||
     java.lang.System.getProperty('cmsBaseUrl') ||
     java.lang.System.getenv('CMS_BASE_URL') ||
-    dotenv['CMS_BASE_URL'];
+    dotenv['CMS_BASE_URL'] ||
+    null; // Allow null - will be set by environment config
+
+  // Log which Firebase API key is being used (first 20 chars only for security)
+  if (config.firebaseApiKey) {
+    karate.log('🔑 Firebase API Key:', config.firebaseApiKey.substring(0, 20) + '...');
+  }
 
   /**
-   * AUTH FLOW PRIORITY (UNCHANGED)
+   * AUTH FLOW PRIORITY
    * 1) Email + password login
    * 2) Refresh token exchange
    * 3) No CMS auth
