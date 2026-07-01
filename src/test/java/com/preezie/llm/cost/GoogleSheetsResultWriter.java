@@ -132,7 +132,7 @@ public class GoogleSheetsResultWriter {
             data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
             data.add(Arrays.asList("FAILED TESTS DETAILS"));
             data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
-            data.add(Arrays.asList("Tenant ID", "Tenant Name", "Content", "Trace ID", "Failed Stage", "Error Message"));
+            data.add(Arrays.asList("Tenant ID", "Tenant Name", "Content", "Trace ID", "Failed Stage", "Error Message", "Result", "Intent", "Pipeline Validation", "Anomalies & Issues", "Quality Assessment"));
             
             for (FailedTest failedTest : results.getFailedTests()) {
                 data.add(Arrays.asList(
@@ -141,7 +141,12 @@ public class GoogleSheetsResultWriter {
                     failedTest.getContent(),
                     failedTest.getTraceId(),
                     failedTest.getFailedStage(),
-                    failedTest.getErrorMessage()
+                    failedTest.getErrorMessage(),
+                    failedTest.getResult() != null ? failedTest.getResult() : "",
+                    failedTest.getIntent() != null ? failedTest.getIntent() : "",
+                    failedTest.getPipelineValidation() != null ? failedTest.getPipelineValidation() : "",
+                    failedTest.getAnomalies() != null ? failedTest.getAnomalies() : "",
+                    failedTest.getQualityAssessment() != null ? failedTest.getQualityAssessment() : ""
                 ));
             }
             data.add(Arrays.asList("")); // Empty row
@@ -676,6 +681,11 @@ public class GoogleSheetsResultWriter {
         private String traceId;
         private String failedStage;
         private String errorMessage;
+        private String result;
+        private String intent;
+        private String pipelineValidation;
+        private String anomalies;
+        private String qualityAssessment;
 
         public FailedTest(String tenantId, String tenantName, String content, String traceId, String failedStage, String errorMessage) {
             this.tenantId = tenantId;
@@ -692,6 +702,16 @@ public class GoogleSheetsResultWriter {
         public String getTraceId() { return traceId; }
         public String getFailedStage() { return failedStage; }
         public String getErrorMessage() { return errorMessage; }
+        public String getResult() { return result; }
+        public void setResult(String result) { this.result = result; }
+        public String getIntent() { return intent; }
+        public void setIntent(String intent) { this.intent = intent; }
+        public String getPipelineValidation() { return pipelineValidation; }
+        public void setPipelineValidation(String pipelineValidation) { this.pipelineValidation = pipelineValidation; }
+        public String getAnomalies() { return anomalies; }
+        public void setAnomalies(String anomalies) { this.anomalies = anomalies; }
+        public String getQualityAssessment() { return qualityAssessment; }
+        public void setQualityAssessment(String qualityAssessment) { this.qualityAssessment = qualityAssessment; }
     }
 
     public static class CostSummary {
