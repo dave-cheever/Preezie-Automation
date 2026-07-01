@@ -48,6 +48,9 @@ public class GoogleSheetsTestRunner {
 
     @Test
     void runGoogleSheetsTests() {
+        // Load .env file and set GOOGLE_APPLICATION_CREDENTIALS if not already set
+        loadEnvironmentVariables();
+        
         // Delete existing usage.csv for a clean report
         String usageCsvPath = System.getProperty("user.dir") + File.separator + "target" + File.separator + "usage.csv";
         try {
@@ -111,6 +114,11 @@ public class GoogleSheetsTestRunner {
         String actual;
         String errorMessage;
         String responseLLM;
+        String result;
+        String intent;
+        String pipelineValidation;
+        String anomalies;
+        String qualityAssessment;
     }
     
     private TestResultsData readTestResultsFromJson() {
@@ -139,16 +147,19 @@ public class GoogleSheetsTestRunner {
                     testCase.content = failureNode.path("content").asText("");
                     testCase.traceId = failureNode.path("traceId").asText("N/A");
                     
-                    // Each test case contains multiple agent failures
-                    JsonNode agentsFailedNode = failureNode.path("agentsFailed");
-                    if (agentsFailedNode.isArray()) {
-                        for (JsonNode agentFailure : agentsFailedNode) {
+                    // Each test case contains multiple failures (new structure)
+                    JsonNode failuresArrayNode = failureNode.path("failures");
+                    if (failuresArrayNode.isArray()) {
+                        for (JsonNode failure : failuresArrayNode) {
                             AgentFailure agentFail = new AgentFailure();
-                            agentFail.failedStage = agentFailure.path("agent").asText("");
-                            agentFail.expected = agentFailure.path("expected").asText("");
-                            agentFail.actual = agentFailure.path("actual").asText("");
-                            agentFail.errorMessage = agentFailure.path("error").asText("");
-                            agentFail.responseLLM = agentFailure.path("responseLLM").asText("");
+                            agentFail.failedStage = failure.path("stage").asText("");
+                            agentFail.errorMessage = failure.path("error").asText("");
+                            // Read analyser details
+                            agentFail.result = failure.path("result").asText("");
+                            agentFail.intent = failure.path("intent").asText("");
+                            agentFail.pipelineValidation = failure.path("pipelineValidation").asText("");
+                            agentFail.anomalies = failure.path("anomalies").asText("");
+                            agentFail.qualityAssessment = failure.path("qualityAssessment").asText("");
                             testCase.agentFailures.add(agentFail);
                         }
                     }
@@ -199,12 +210,19 @@ public class GoogleSheetsTestRunner {
                 // Display all failed agents for this test case
                 for (AgentFailure agentFail : testCase.agentFailures) {
                     System.out.println("  Failed At:   " + agentFail.failedStage);
-                    if (!agentFail.expected.isEmpty()) {
+                    if (agentFail.expected != null && !agentFail.expected.isEmpty()) {
                         System.out.println("  Expected:    " + agentFail.expected);
                         System.out.println("  Actual:      " + agentFail.actual);
                     }
-                    if (!agentFail.errorMessage.isEmpty()) {
+                    if (agentFail.errorMessage != null && !agentFail.errorMessage.isEmpty()) {
                         System.out.println("  Error:       " + agentFail.errorMessage);
+                    }
+                    // Display analyser details if available
+                    if (agentFail.result != null && !agentFail.result.isEmpty()) {
+                        System.out.println("  Result:      " + agentFail.result);
+                    }
+                    if (agentFail.intent != null && !agentFail.intent.isEmpty()) {
+                        System.out.println("  Intent:      " + agentFail.intent);
                     }
                     // Add blank line between agents if not the last one
                     if (testCase.agentFailures.indexOf(agentFail) < testCase.agentFailures.size() - 1) {
@@ -277,14 +295,21 @@ public class GoogleSheetsTestRunner {
             // Flatten the grouped structure for Google Sheets
             for (FailedTestCase testCase : actualResults.failedTestCases) {
                 for (AgentFailure agentFail : testCase.agentFailures) {
-                    testResults.addFailedTest(new GoogleSheetsResultWriter.FailedTest(
+                    GoogleSheetsResultWriter.FailedTest failedTest = new GoogleSheetsResultWriter.FailedTest(
                         testCase.tenantId,
                         testCase.tenantName,
                         testCase.content,
                         testCase.traceId,
                         agentFail.failedStage,
                         buildErrorMessage(agentFail)
-                    ));
+                    );
+                    // Add analyser details
+                    failedTest.setResult(agentFail.result);
+                    failedTest.setIntent(agentFail.intent);
+                    failedTest.setPipelineValidation(agentFail.pipelineValidation);
+                    failedTest.setAnomalies(agentFail.anomalies);
+                    failedTest.setQualityAssessment(agentFail.qualityAssessment);
+                    testResults.addFailedTest(failedTest);
                 }
             }
             
@@ -625,14 +650,15 @@ public class GoogleSheetsTestRunner {
         StringBuilder sb = new StringBuilder();
         
         // For promptGlobalFilter and getIntent - show expected vs actual
-        if (!agentFail.expected.isEmpty() && !agentFail.actual.isEmpty()) {
+        if (agentFail.expected != null && !agentFail.expected.isEmpty() && 
+            agentFail.actual != null && !agentFail.actual.isEmpty()) {
             sb.append("Expected: ").append(agentFail.expected)
               .append("\n")
               .append("Actual: ").append(agentFail.actual);
         }
         
         // Add the detailed error message (includes scores, issues, summary for getIntentSummary)
-        if (!agentFail.errorMessage.isEmpty()) {
+        if (agentFail.errorMessage != null && !agentFail.errorMessage.isEmpty()) {
             if (sb.length() > 0) sb.append("\n");
             
             // For getIntentSummary failures, format each score/issue on its own line
@@ -651,7 +677,8 @@ public class GoogleSheetsTestRunner {
         }
         
         // Add LLM response for getIntentSummary if not already in errorMessage
-        if (!agentFail.responseLLM.isEmpty() && !agentFail.errorMessage.contains("LLM")) {
+        if (agentFail.responseLLM != null && !agentFail.responseLLM.isEmpty() && 
+            (agentFail.errorMessage == null || !agentFail.errorMessage.contains("LLM"))) {
             if (sb.length() > 0) sb.append("\n");
             // Truncate long LLM responses for display
             String llmText = agentFail.responseLLM.length() > 200 
@@ -788,6 +815,55 @@ public class GoogleSheetsTestRunner {
             return s.substring(0, length - 3) + "...";
         }
         return String.format("%-" + length + "s", s);
+    }
+    
+    /**
+     * Load environment variables from .env file if not already set as system environment variables
+     */
+    private void loadEnvironmentVariables() {
+        try {
+            // Check if GOOGLE_APPLICATION_CREDENTIALS is already set
+            String existingCredentials = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
+            if (existingCredentials != null && !existingCredentials.isEmpty()) {
+                System.out.println("✅ GOOGLE_APPLICATION_CREDENTIALS already set: " + existingCredentials);
+                return;
+            }
+            
+            // Load .env file from project root
+            String projectDir = System.getProperty("user.dir");
+            Path envFile = Paths.get(projectDir, ".env");
+            
+            if (!Files.exists(envFile)) {
+                System.out.println("⚠️  .env file not found at: " + envFile);
+                return;
+            }
+            
+            List<String> lines = Files.readAllLines(envFile);
+            for (String line : lines) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                
+                int equalsIndex = line.indexOf('=');
+                if (equalsIndex > 0) {
+                    String key = line.substring(0, equalsIndex).trim();
+                    String value = line.substring(equalsIndex + 1).trim();
+                    
+                    // Set GOOGLE_APPLICATION_CREDENTIALS as system property if found in .env
+                    if (key.equals("GOOGLE_APPLICATION_CREDENTIALS")) {
+                        // Convert relative path to absolute path
+                        Path credentialsPath = Paths.get(projectDir, value);
+                        String absolutePath = credentialsPath.toAbsolutePath().toString();
+                        System.setProperty("google.credentials.path", absolutePath);
+                        System.out.println("✅ Loaded Google credentials from .env: " + absolutePath);
+                        break;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("⚠️  Warning: Could not load .env file: " + e.getMessage());
+        }
     }
 }
 
