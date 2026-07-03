@@ -20,7 +20,7 @@ Scenario:
   * def evaluatorPayload =
     """
     {
-      "model": "gpt-4.1",
+      "model": "gpt-4.1-mini",
       "messages": [
         { "role": "system", "content": "#(evaluatorSystem)" },
         { "role": "user", "content": "#(evaluatorUserWithContext)" }
@@ -109,7 +109,7 @@ Scenario:
         var builder = new UsageData.Builder();
         builder.tenantId(tenantId);
         builder.content(content + ' [smartResponse]');
-        builder.modelName('gpt-4.1');
+        builder.modelName('gpt-5.4-mini');
         builder.promptTokens(promptTokens);
         builder.completionTokens(completionTokens);
         builder.totalTokens(totalTokens);

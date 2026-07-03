@@ -32,7 +32,7 @@ public class ApiTestRunner {
 
         System.setProperty("llm.usage.report.path", usageReportPath);
 
-        Results results = Runner.path("classpath:com/preezie/tests/chat-traceid-cms-validation.feature")
+        Results results = Runner.path("classpath:com/preezie/tests/chat-google-sheets-validation.feature")
                 .outputCucumberJson(true)
                 .parallel(1);
 

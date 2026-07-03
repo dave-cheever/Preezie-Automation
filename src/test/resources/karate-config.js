@@ -52,6 +52,8 @@ function fn() {
     dotenv['GOOGLE_SHEETS_ID'] ||
     '1FV7pekpUKZ34VjDXuoslernJuGnx3jsjxJI5WkYsHVM'; // Your spreadsheet ID
 
+  var sheetsReader = read('classpath:com/preezie/services/utils/google-sheets-reader.js');
+
   /**********************************************************
    * Multi-Environment Configuration
    **********************************************************/
@@ -135,17 +137,25 @@ function fn() {
   /**********************************************************
    * Firebase / CMS Authentication Configuration
    **********************************************************/
-  // Firebase API key can be explicitly set or will default to dev
-  // Priority: Explicit env var > dotenv > default to dev key
-  // Note: Make sure your Firebase credentials are registered in the Firebase project
-  // corresponding to the API key you're using
+  // Firebase API key comes from the selected runtime environment, not .env.
+  // Explicit overrides are still allowed via karate/system properties.
+  var runtimeEnvironment =
+    karate.properties['environment'] ||
+    karate.env ||
+    java.lang.System.getProperty('environment') ||
+    java.lang.System.getenv('ENVIRONMENT') ||
+    sheetsReader.getEnvironmentFromConfig(config.googleSheetsId) ||
+    'dev';
+  runtimeEnvironment = ('' + runtimeEnvironment).toLowerCase().trim();
+  if (!config.environments[runtimeEnvironment]) {
+    runtimeEnvironment = 'dev';
+  }
 
+  config.runtimeEnvironment = runtimeEnvironment;
   config.firebaseApiKey =
     karate.properties['firebaseApiKey'] ||
     java.lang.System.getProperty('firebaseApiKey') ||
-    java.lang.System.getenv('FIREBASE_API_KEY') ||
-    dotenv['FIREBASE_API_KEY'] ||
-    config.environments.dev.firebaseApiKey; // Default to dev if not specified
+    config.environments[runtimeEnvironment].firebaseApiKey;
 
   config.firebaseEmail =
     karate.properties['firebaseEmail'] ||
@@ -172,6 +182,7 @@ function fn() {
     dotenv['CMS_BASE_URL'] ||
     null; // Allow null - will be set by environment config
 
+  karate.log('🌍 Runtime environment for auth:', runtimeEnvironment);
   // Log which Firebase API key is being used (first 20 chars only for security)
   if (config.firebaseApiKey) {
     karate.log('🔑 Firebase API Key:', config.firebaseApiKey.substring(0, 20) + '...');

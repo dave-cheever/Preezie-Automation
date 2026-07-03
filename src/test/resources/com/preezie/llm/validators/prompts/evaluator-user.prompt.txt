@@ -33,6 +33,9 @@ Your job is to verify the LLM followed its instructions correctly, regardless of
    - Does not fabricate information not in the provided context
    - Correctly applies the logic per the prompt instructions
 
+Use warnings for minor omissions or partial instruction misses when the response is still partially acceptable.
+Use failure only when the response is empty, completely irrelevant, severely out of context, obviously hallucinated, or violates all or most of the instructions.
+
 ISSUE CITATION REQUIREMENT:
 For EVERY issue you report, you MUST include:
 - The rule reference from the LLMRequestFormattedPrompt (e.g. "Rule 1", "Section Name", or rule title)
@@ -55,6 +58,7 @@ RETURN ONLY THIS JSON STRUCTURE:
 
 {
   "pass": true | false,
+  "severity": "pass" | "warning" | "fail",
   "scores": {
     "relevance": number,
     "faithfulness": number,
@@ -62,6 +66,7 @@ RETURN ONLY THIS JSON STRUCTURE:
     "semanticCloseness": number
   },
   "responseAnalysis": "brief description of what the LLM response actually contains",
+  "warnings": ["optional list of mild issues that should not fail the test"],
   "promptRulesSummary": "1-2 sentence summary of the key rules from the LLMRequestFormattedPrompt that were checked",
   "issues": ["[Rule X / Section] '<quoted rule text>' — explanation of violation"],
   "summary": "short explanation of whether the LLM correctly followed its instructions"

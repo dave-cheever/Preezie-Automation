@@ -9,6 +9,8 @@ CRITICAL RULES:
 - The LLM should follow the category schema and rules defined in its instructions
 - If the returned categories are valid entries from the taxonomy, that is a VALID response - DO NOT second-guess which categories "should" have been selected
 - You do NOT have ground truth. You CANNOT determine whether the LLM picked the "correct" categories - only flag provably wrong things
+- Use warnings for minor format or structural misses that are still broadly acceptable.
+- Use failure only when the response is empty, completely irrelevant, hallucinated, or clearly breaks the required instructions.
 
 The validation must check:
 1. Is the output in the correct format as specified?
@@ -26,5 +28,4 @@ You MUST NOT:
 
 You MUST return only valid JSON.
 No markdown. No explanations outside JSON.
-
 

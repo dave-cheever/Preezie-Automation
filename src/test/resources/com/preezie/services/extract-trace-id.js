@@ -2,10 +2,7 @@
 function(h, body){
   var t =
     (h['trace-id'] && h['trace-id'][0]) ||
-    (h['Trace-Id'] && h['Trace-Id'][0]) ||
-    (h['traceparent'] && h['traceparent'][0]) ||
-    (h['Request-Id'] && h['Request-Id'][0]) ||
-    (h['request-id'] && h['request-id'][0]) ||
+    (h['Trace-Id'] && h['Trace-Id'][0])
     null;
 
   if (!t && body) {

@@ -9,6 +9,8 @@ CRITICAL RULES:
 - You do NOT have ground truth. You CANNOT determine what search terms "should" have been extracted
 - Only flag a FAILURE if it is PROVABLY WRONG from the provided data
 - The LLM should properly parse the user's search query and extract relevant title keywords per the instructions
+- Use warnings for minor format or structural misses that are still broadly acceptable.
+- Use failure only when the response is empty, completely irrelevant, hallucinated, or clearly breaks the required instructions.
 
 The validation must check:
 1. Is the output in the correct format as specified?
@@ -26,6 +28,5 @@ You MUST NOT:
 
 You MUST return only valid JSON.
 No markdown. No explanations outside JSON.
-
 
 

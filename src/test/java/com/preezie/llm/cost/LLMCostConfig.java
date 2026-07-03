@@ -6,7 +6,7 @@ import java.util.Map;
 public class LLMCostConfig {
     private static final Map<String, ModelPricing> MODEL_PRICING = Map.of(
             "gpt-4", new ModelPricing(new BigDecimal("0.00003"), new BigDecimal("0.00006")),
-            "gpt-4.1", new ModelPricing(new BigDecimal("0.000002"), new BigDecimal("0.000008")),
+            "gpt-5.4-mini", new ModelPricing(new BigDecimal("0.000002"), new BigDecimal("0.000008")),
             "gpt-4-turbo", new ModelPricing(new BigDecimal("0.00001"), new BigDecimal("0.00003")),
             "gpt-3.5-turbo", new ModelPricing(new BigDecimal("0.0000005"), new BigDecimal("0.0000015")),
             "claude-3-opus", new ModelPricing(new BigDecimal("0.000015"), new BigDecimal("0.000075")),
@@ -14,7 +14,7 @@ public class LLMCostConfig {
     );
 
     public static ModelPricing getPricing(String modelName) {
-        // Handle model name variations (e.g., "gpt-4.1-2025-04-14" -> "gpt-4.1")
+        // Handle model name variations (e.g., "gpt-5.4-mini-2025-04-14" -> "gpt-5.4-mini")
         String normalizedName = modelName.toLowerCase();
         if (MODEL_PRICING.containsKey(normalizedName)) {
             return MODEL_PRICING.get(normalizedName);

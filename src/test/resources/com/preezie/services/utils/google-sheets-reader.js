@@ -142,6 +142,24 @@
     return configObj;
   }
 
+  function getValidationFromConfig(spreadsheetId) {
+    var config = getConfigValues(spreadsheetId);
+    var overrideValidation =
+      karate.properties['validation'] ||
+      java.lang.System.getProperty('validation') ||
+      java.lang.System.getenv('VALIDATION_MODE');
+    var rawValidation = overrideValidation || config.validation || config.Validation || config.validationMode || '2';
+    var validation = ('' + rawValidation).trim();
+
+    if (validation !== '1' && validation !== '2') {
+      karate.log('⚠️  Invalid validation mode from Google Sheets config:', rawValidation, '- defaulting to 2');
+      validation = '2';
+    }
+
+    karate.log('📋 Validation mode from Google Sheets config:', validation === '1' ? '1 (AI judge)' : '2 (API analyser)');
+    return validation;
+  }
+
   function getAllEnabledTestData(spreadsheetId) {
     var tenants = getTenantConfig(spreadsheetId);
     var allTestData = [];
@@ -201,7 +219,8 @@
     getTestDataForTenant: getTestDataForTenant,
     getAllEnabledTestData: getAllEnabledTestData,
     getConfigValues: getConfigValues,
-    getEnvironmentFromConfig: getEnvironmentFromConfig
+    getEnvironmentFromConfig: getEnvironmentFromConfig,
+    getValidationFromConfig: getValidationFromConfig
   };
 
 })()

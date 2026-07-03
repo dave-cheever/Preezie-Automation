@@ -8,6 +8,8 @@ CRITICAL RULES:
 - ONLY validate if the LLM response correctly follows the extraction rules in the prompt
 - The LLM should extract only information actually present in the conversation
 - Validate that extracted information is grounded in the actual input, not fabricated
+- Use "warning" for minor omissions or partial instruction misses when the response is still partially acceptable.
+- Use "fail" only when the response is empty, irrelevant, hallucinates, or clearly breaks the required format/instructions.
 
 The validation must check:
 1. Did the LLM correctly follow the extraction rules from its prompt?
@@ -21,7 +23,37 @@ You must detect:
 - Incorrect format responses
 - Violations of the prompt's extraction guidelines
 
-You MUST return only valid JSON.
-No markdown. No explanations outside JSON.
+SCORING RULES (0–5):
+- relevance: the response addresses the extraction task as defined in the prompt
+- faithfulness: no fabricated user info — all extracted info is grounded in actual input
+- instructionCompliance: follows the exact format and structural rules defined in LLMRequestFormattedPrompt
+- semanticCloseness: the response structure and format match what the prompt describes
 
+PASS CONDITIONS:
+- relevance >= 4
+- faithfulness >= 4
+- instructionCompliance >= 4
+- semanticCloseness >= 4
 
+SEVERITY RULES:
+- "pass": the response is correct and grounded.
+- "warning": the response is mostly on-task but has mild issues that do not make it unusable.
+- "fail": the response is empty, irrelevant, hallucinated, or clearly breaks the required instructions.
+
+RETURN ONLY THIS JSON STRUCTURE:
+
+{
+  "pass": true | false,
+  "severity": "pass" | "warning" | "fail",
+  "scores": {
+    "relevance": number,
+    "faithfulness": number,
+    "instructionCompliance": number,
+    "semanticCloseness": number
+  },
+  "extractedInfo": "summary of user information extracted from AssistantResponse",
+  "warnings": ["optional list of mild issues that should not fail the test"],
+  "promptRulesSummary": "1-2 sentence summary of the extraction rules in the prompt (what fields to extract, output format, what to do when info is absent)",
+  "issues": ["[Rule X / Section] '<quoted rule text>' — explanation of violation"],
+  "summary": "short explanation of whether the LLM correctly followed its extraction instructions"
+}

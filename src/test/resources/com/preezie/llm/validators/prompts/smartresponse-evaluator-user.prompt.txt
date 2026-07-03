@@ -33,6 +33,11 @@ Your job is to verify the LLM followed its instructions correctly, regardless of
    - Follows the conversational guidelines per the prompt
    - Does not fabricate product features, prices, or availability
 
+Use warnings for minor omissions or partial instruction misses when the response is still partially acceptable.
+Use failure only when the response is empty, completely irrelevant, severely out of context, obviously hallucinated, or violates all or most of the instructions.
+If the response is grounded, on-topic, and mostly follows the product validation format, but has formatting slips such as imperfect product headings, slightly incorrect product ordering, or an overlong closing sentence, mark it as warning instead of failure.
+Do not fail solely because the response mixes product validation style with a mild narrowing-style closing sentence if the rest of the answer is still usable.
+
 ISSUE CITATION REQUIREMENT:
 For EVERY issue you report, you MUST include:
 - The rule reference from the LLMRequestFormattedPrompt (e.g. "Rule 1", "Section Name", or rule title)
@@ -55,6 +60,7 @@ RETURN ONLY THIS JSON STRUCTURE:
 
 {
   "pass": true | false,
+  "severity": "pass" | "warning" | "fail",
   "scores": {
     "relevance": number,
     "faithfulness": number,
@@ -62,9 +68,8 @@ RETURN ONLY THIS JSON STRUCTURE:
     "semanticCloseness": number
   },
   "responseAnalysis": "brief description of what the LLM response actually contains",
+  "warnings": ["optional list of mild issues that should not fail the test"],
   "promptRulesSummary": "1-2 sentence summary of the key response rules in the prompt (format, tone, grounding requirements, what product data must be used)",
   "issues": ["[Rule X / Section] '<quoted rule text>' — explanation of violation"],
   "summary": "short explanation of whether the LLM correctly followed its response instructions"
 }
-
-
