@@ -93,7 +93,7 @@ Scenario: Run all enabled tests from Google Sheets
         "callSucceededKey": "getUserInformationLlmCallSucceededOut"
       },
       {
-        "agentName": "specificQuestionSubIntent",
+        "agentName": "getSpecificQuestionSubIntent",
         "feature": "classpath:com/preezie/llm/helpers/run-specificquestionsubintent-evaluator.feature",
         "promptArgsFn": "getFirstSpecificQuestionSubIntentPromptArguments",
         "validationKey": "specificQuestionSubIntentValidationOut",
@@ -101,7 +101,7 @@ Scenario: Run all enabled tests from Google Sheets
         "callSucceededKey": "specificQuestionSubIntentLlmCallSucceededOut"
       },
       {
-        "agentName": "multiProductQuestionSubIntent",
+        "agentName": "getMultiProductQuestionSubIntent",
         "feature": "classpath:com/preezie/llm/helpers/run-multiproductquestionsubintent-evaluator.feature",
         "promptArgsFn": "getFirstMultiProductQuestionSubIntentPromptArguments",
         "validationKey": "multiProductQuestionSubIntentValidationOut",
@@ -183,6 +183,34 @@ Scenario: Run all enabled tests from Google Sheets
     ]
     """
 
+  * def enabledValidationAgents = sheetsReader.getEnabledValidationAgents(spreadsheetId)
+  * def activeAgentValidators =
+    """
+    function(agentValidators, enabledValidationAgents) {
+      var active = [];
+      var enabledMap = {};
+
+      for (var i = 0; i < enabledValidationAgents.length; i++) {
+        var enabledName = ('' + enabledValidationAgents[i]).trim().toLowerCase();
+        if (enabledName) {
+          enabledMap[enabledName] = true;
+        }
+      }
+
+      for (var j = 0; j < agentValidators.length; j++) {
+        var config = agentValidators[j];
+        var agentName = ('' + config.agentName).trim().toLowerCase();
+        if (enabledMap[agentName]) {
+          active.push(config);
+        }
+      }
+
+      return active;
+    }
+    """
+  * def activeAgentValidators = activeAgentValidators(agentValidators, enabledValidationAgents)
+  * karate.log('Enabled validation agents from ValidationConfig:', enabledValidationAgents.length, '| Active validators:', activeAgentValidators.length)
+
   * def runTest =
     """
     function(testCase) {
@@ -196,7 +224,8 @@ Scenario: Run all enabled tests from Google Sheets
       var firebaseEmail = karate.get('firebaseEmailConfig');
       var firebasePassword = karate.get('firebasePasswordConfig');
       var visitorRotation = karate.get('visitorRotation');
-      var agentValidators = karate.get('agentValidators');
+      var agentValidators = karate.get('activeAgentValidators');
+      var enabledValidationAgents = karate.get('enabledValidationAgents');
       var results = karate.get('results');
       var content = testCase.content;
       var tenantId = testCase.tenantId;
@@ -399,6 +428,33 @@ Scenario: Run all enabled tests from Google Sheets
           warnings.push(safeWarning);
         }
 
+        if (!agentValidators || agentValidators.length === 0) {
+          failed = true;
+          var configFailure = {
+            stage: 'ValidationConfig',
+            agentName: 'ValidationConfig',
+            error: 'No enabled validation agents found in ValidationConfig',
+            validationMode: validationModeName,
+            result: 'FAIL',
+            intent: 'ValidationConfig',
+            pipelineValidation: '',
+            anomalies: 'No enabled validation agents found in ValidationConfig',
+            qualityAssessment: '',
+            responseLLM: '',
+            validationReport: 'No enabled validation agents found in ValidationConfig'
+          };
+          validations.push(configFailure);
+          failures.push(configFailure);
+          return {
+            pass: false,
+            validations: validations,
+            warnings: warnings,
+            failures: failures,
+            traceAgentCount: 0,
+            validatedAgentCount: 0
+          };
+        }
+
         if (Array.isArray(traceData)) {
           for (i = 0; i < traceData.length; i++) {
             if (traceData[i] && traceData[i].agentName && traceData[i].agentName !== 'promptGlobalFilter') {
@@ -414,7 +470,8 @@ Scenario: Run all enabled tests from Google Sheets
         }
 
         karate.log('🔎 AI judge trace agents:', Object.keys(traceAgentMap).join(', ') || 'none');
-        karate.log('🔎 AI judge validating', presentValidators.length, 'of', agentValidators.length, 'known validators');
+        karate.log('🔎 AI judge validating', presentValidators.length, 'of', agentValidators.length, 'enabled validators');
+        karate.log('🔎 Enabled validation agents:', enabledValidationAgents.join(', ') || 'none');
 
         for (i = 0; i < presentValidators.length; i++) {
           var config = presentValidators[i];
