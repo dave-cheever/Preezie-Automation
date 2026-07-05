@@ -263,563 +263,106 @@ public class CostCalculator {
         public double getAvgPromptTokens() { return getAveragePromptTokens(); }
         public double getAvgCompletionTokens() { return getAverageCompletionTokens(); }
 
+        private void appendSummarySection(StringBuilder sb, String title, ValidationTypeSummary summary) {
+            if (summary == null || summary.getCount() <= 0) {
+                return;
+            }
+
+            sb.append(String.format("""
+                    ═══════════════════════════════════════════════════════════════
+                                    AI COST SUMMARY - %s
+                    ═══════════════════════════════════════════════════════════════
+                    """, title));
+            sb.append(String.format("""
+                    Evaluations:              %d
+                    Prompt Tokens:            %,d
+                    Completion Tokens:        %,d
+                    Total Tokens:             %,d
+                    Input Cost:               $%.6f
+                    Output Cost:              $%.6f
+                    Total Cost:               $%.6f
+                    Avg Cost/Evaluation:      $%.6f
+                    Avg Prompt Tokens:        %.2f
+                    Avg Completion Tokens:    %.2f
+                    """,
+                    summary.getCount(),
+                    summary.getPromptTokens(),
+                    summary.getCompletionTokens(),
+                    summary.getTotalTokens(),
+                    summary.getInputCost(),
+                    summary.getOutputCost(),
+                    summary.getTotalCost(),
+                    summary.getAvgCostPerRequest(),
+                    summary.getAvgPromptTokens(),
+                    summary.getAvgCompletionTokens()));
+        }
+
+        private void appendCountLine(StringBuilder sb, String label, int count) {
+            if (count > 0) {
+                sb.append(String.format("  - %-32s %d%n", label + ":", count));
+            }
+        }
+
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
-            
-            // getIntentSummary Section
-            sb.append("""
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - getIntentSummary
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getIntentSummarySummary.getCount(),
-                    getIntentSummarySummary.getPromptTokens(),
-                    getIntentSummarySummary.getCompletionTokens(),
-                    getIntentSummarySummary.getTotalTokens(),
-                    getIntentSummarySummary.getInputCost(),
-                    getIntentSummarySummary.getOutputCost(),
-                    getIntentSummarySummary.getTotalCost(),
-                    getIntentSummarySummary.getAvgCostPerRequest(),
-                    getIntentSummarySummary.getAvgPromptTokens(),
-                    getIntentSummarySummary.getAvgCompletionTokens()));
+            appendSummarySection(sb, "getIntentSummary", getIntentSummarySummary);
+            appendSummarySection(sb, "getIntent", getIntentSummary);
+            appendSummarySection(sb, "getCategories", getCategoriesSummary);
+            appendSummarySection(sb, "findProductFromPrompt", getFindProductSummary);
+            appendSummarySection(sb, "smartResponse", getSmartResponseSummary);
+            appendSummarySection(sb, "getUserInformation", getGetUserInformationSummary);
+            appendSummarySection(sb, "getSpecificQuestionSubIntent", getSpecificQuestionSubIntentSummary);
+            appendSummarySection(sb, "getMultiProductQuestionSubIntent", getMultiProductQuestionSubIntentSummary);
+            appendSummarySection(sb, "searchingByTitle", getSearchingByTitleSummary);
+            appendSummarySection(sb, "specificProductQuestion", getSpecificProductQuestionSummary);
+            appendSummarySection(sb, "specificProductQuestionResponse", getSpecificProductQuestionResponseSummary);
+            appendSummarySection(sb, "specificProductSizeRecommendation", getSpecificProductSizeRecommendationSummary);
+            appendSummarySection(sb, "similarBaseProduct", getSimilarBaseProductSummary);
+            appendSummarySection(sb, "productCompareResponse", getProductCompareResponseSummary);
+            appendSummarySection(sb, "findBaseProduct", getFindBaseProductSummary);
+            appendSummarySection(sb, "findProductsToBundle", getFindProductsToBundleSummary);
+            appendSummarySection(sb, "generalConversation", getGeneralConversationSummary);
 
-            // getIntent Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - getIntent
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getIntentSummary.getCount(),
-                    getIntentSummary.getPromptTokens(),
-                    getIntentSummary.getCompletionTokens(),
-                    getIntentSummary.getTotalTokens(),
-                    getIntentSummary.getInputCost(),
-                    getIntentSummary.getOutputCost(),
-                    getIntentSummary.getTotalCost(),
-                    getIntentSummary.getAvgCostPerRequest(),
-                    getIntentSummary.getAvgPromptTokens(),
-                    getIntentSummary.getAvgCompletionTokens()));
-
-            // getCategories Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - getCategories
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getCategoriesSummary.getCount(),
-                    getCategoriesSummary.getPromptTokens(),
-                    getCategoriesSummary.getCompletionTokens(),
-                    getCategoriesSummary.getTotalTokens(),
-                    getCategoriesSummary.getInputCost(),
-                    getCategoriesSummary.getOutputCost(),
-                    getCategoriesSummary.getTotalCost(),
-                    getCategoriesSummary.getAvgCostPerRequest(),
-                    getCategoriesSummary.getAvgPromptTokens(),
-                    getCategoriesSummary.getAvgCompletionTokens()));
-
-            // findProductFromPrompt Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - findProductFromPrompt
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getFindProductSummary.getCount(),
-                    getFindProductSummary.getPromptTokens(),
-                    getFindProductSummary.getCompletionTokens(),
-                    getFindProductSummary.getTotalTokens(),
-                    getFindProductSummary.getInputCost(),
-                    getFindProductSummary.getOutputCost(),
-                    getFindProductSummary.getTotalCost(),
-                    getFindProductSummary.getAvgCostPerRequest(),
-                    getFindProductSummary.getAvgPromptTokens(),
-                    getFindProductSummary.getAvgCompletionTokens()));
-
-            // smartResponse Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - smartResponse
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getSmartResponseSummary.getCount(),
-                    getSmartResponseSummary.getPromptTokens(),
-                    getSmartResponseSummary.getCompletionTokens(),
-                    getSmartResponseSummary.getTotalTokens(),
-                    getSmartResponseSummary.getInputCost(),
-                    getSmartResponseSummary.getOutputCost(),
-                    getSmartResponseSummary.getTotalCost(),
-                    getSmartResponseSummary.getAvgCostPerRequest(),
-                    getSmartResponseSummary.getAvgPromptTokens(),
-                    getSmartResponseSummary.getAvgCompletionTokens()));
-
-            // getUserInformation Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - getUserInformation
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getGetUserInformationSummary.getCount(),
-                    getGetUserInformationSummary.getPromptTokens(),
-                    getGetUserInformationSummary.getCompletionTokens(),
-                    getGetUserInformationSummary.getTotalTokens(),
-                    getGetUserInformationSummary.getInputCost(),
-                    getGetUserInformationSummary.getOutputCost(),
-                    getGetUserInformationSummary.getTotalCost(),
-                    getGetUserInformationSummary.getAvgCostPerRequest(),
-                    getGetUserInformationSummary.getAvgPromptTokens(),
-                    getGetUserInformationSummary.getAvgCompletionTokens()));
-
-            // getSpecificQuestionSubIntent Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - getSpecificQuestionSubIntent
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getSpecificQuestionSubIntentSummary.getCount(),
-                    getSpecificQuestionSubIntentSummary.getPromptTokens(),
-                    getSpecificQuestionSubIntentSummary.getCompletionTokens(),
-                    getSpecificQuestionSubIntentSummary.getTotalTokens(),
-                    getSpecificQuestionSubIntentSummary.getInputCost(),
-                    getSpecificQuestionSubIntentSummary.getOutputCost(),
-                    getSpecificQuestionSubIntentSummary.getTotalCost(),
-                    getSpecificQuestionSubIntentSummary.getAvgCostPerRequest(),
-                    getSpecificQuestionSubIntentSummary.getAvgPromptTokens(),
-                    getSpecificQuestionSubIntentSummary.getAvgCompletionTokens()));
-
-            // getMultiProductQuestionSubIntent Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - getMultiProductQuestionSubIntent
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getMultiProductQuestionSubIntentSummary.getCount(),
-                    getMultiProductQuestionSubIntentSummary.getPromptTokens(),
-                    getMultiProductQuestionSubIntentSummary.getCompletionTokens(),
-                    getMultiProductQuestionSubIntentSummary.getTotalTokens(),
-                    getMultiProductQuestionSubIntentSummary.getInputCost(),
-                    getMultiProductQuestionSubIntentSummary.getOutputCost(),
-                    getMultiProductQuestionSubIntentSummary.getTotalCost(),
-                    getMultiProductQuestionSubIntentSummary.getAvgCostPerRequest(),
-                    getMultiProductQuestionSubIntentSummary.getAvgPromptTokens(),
-                    getMultiProductQuestionSubIntentSummary.getAvgCompletionTokens()));
-
-            // searchingByTitle Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - searchingByTitle
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getSearchingByTitleSummary.getCount(),
-                    getSearchingByTitleSummary.getPromptTokens(),
-                    getSearchingByTitleSummary.getCompletionTokens(),
-                    getSearchingByTitleSummary.getTotalTokens(),
-                    getSearchingByTitleSummary.getInputCost(),
-                    getSearchingByTitleSummary.getOutputCost(),
-                    getSearchingByTitleSummary.getTotalCost(),
-                    getSearchingByTitleSummary.getAvgCostPerRequest(),
-                    getSearchingByTitleSummary.getAvgPromptTokens(),
-                    getSearchingByTitleSummary.getAvgCompletionTokens()));
-
-            // specificProductQuestion Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - specificProductQuestion
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getSpecificProductQuestionSummary.getCount(),
-                    getSpecificProductQuestionSummary.getPromptTokens(),
-                    getSpecificProductQuestionSummary.getCompletionTokens(),
-                    getSpecificProductQuestionSummary.getTotalTokens(),
-                    getSpecificProductQuestionSummary.getInputCost(),
-                    getSpecificProductQuestionSummary.getOutputCost(),
-                    getSpecificProductQuestionSummary.getTotalCost(),
-                    getSpecificProductQuestionSummary.getAvgCostPerRequest(),
-                    getSpecificProductQuestionSummary.getAvgPromptTokens(),
-                    getSpecificProductQuestionSummary.getAvgCompletionTokens()));
-
-            // specificProductQuestionResponse Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - specificProductQuestionResponse
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getSpecificProductQuestionResponseSummary.getCount(),
-                    getSpecificProductQuestionResponseSummary.getPromptTokens(),
-                    getSpecificProductQuestionResponseSummary.getCompletionTokens(),
-                    getSpecificProductQuestionResponseSummary.getTotalTokens(),
-                    getSpecificProductQuestionResponseSummary.getInputCost(),
-                    getSpecificProductQuestionResponseSummary.getOutputCost(),
-                    getSpecificProductQuestionResponseSummary.getTotalCost(),
-                    getSpecificProductQuestionResponseSummary.getAvgCostPerRequest(),
-                    getSpecificProductQuestionResponseSummary.getAvgPromptTokens(),
-                    getSpecificProductQuestionResponseSummary.getAvgCompletionTokens()));
-
-            // specificProductSizeRecommendation Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - specificProductSizeRecommendation
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getSpecificProductSizeRecommendationSummary.getCount(),
-                    getSpecificProductSizeRecommendationSummary.getPromptTokens(),
-                    getSpecificProductSizeRecommendationSummary.getCompletionTokens(),
-                    getSpecificProductSizeRecommendationSummary.getTotalTokens(),
-                    getSpecificProductSizeRecommendationSummary.getInputCost(),
-                    getSpecificProductSizeRecommendationSummary.getOutputCost(),
-                    getSpecificProductSizeRecommendationSummary.getTotalCost(),
-                    getSpecificProductSizeRecommendationSummary.getAvgCostPerRequest(),
-                    getSpecificProductSizeRecommendationSummary.getAvgPromptTokens(),
-                    getSpecificProductSizeRecommendationSummary.getAvgCompletionTokens()));
-
-            // similarBaseProduct Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - similarBaseProduct
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getSimilarBaseProductSummary.getCount(),
-                    getSimilarBaseProductSummary.getPromptTokens(),
-                    getSimilarBaseProductSummary.getCompletionTokens(),
-                    getSimilarBaseProductSummary.getTotalTokens(),
-                    getSimilarBaseProductSummary.getInputCost(),
-                    getSimilarBaseProductSummary.getOutputCost(),
-                    getSimilarBaseProductSummary.getTotalCost(),
-                    getSimilarBaseProductSummary.getAvgCostPerRequest(),
-                    getSimilarBaseProductSummary.getAvgPromptTokens(),
-                    getSimilarBaseProductSummary.getAvgCompletionTokens()));
-
-            // productCompareResponse Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - productCompareResponse
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getProductCompareResponseSummary.getCount(),
-                    getProductCompareResponseSummary.getPromptTokens(),
-                    getProductCompareResponseSummary.getCompletionTokens(),
-                    getProductCompareResponseSummary.getTotalTokens(),
-                    getProductCompareResponseSummary.getInputCost(),
-                    getProductCompareResponseSummary.getOutputCost(),
-                    getProductCompareResponseSummary.getTotalCost(),
-                    getProductCompareResponseSummary.getAvgCostPerRequest(),
-                    getProductCompareResponseSummary.getAvgPromptTokens(),
-                    getProductCompareResponseSummary.getAvgCompletionTokens()));
-
-            // findBaseProduct Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - findBaseProduct
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getFindBaseProductSummary.getCount(),
-                    getFindBaseProductSummary.getPromptTokens(),
-                    getFindBaseProductSummary.getCompletionTokens(),
-                    getFindBaseProductSummary.getTotalTokens(),
-                    getFindBaseProductSummary.getInputCost(),
-                    getFindBaseProductSummary.getOutputCost(),
-                    getFindBaseProductSummary.getTotalCost(),
-                    getFindBaseProductSummary.getAvgCostPerRequest(),
-                    getFindBaseProductSummary.getAvgPromptTokens(),
-                    getFindBaseProductSummary.getAvgCompletionTokens()));
-
-            // findProductsToBundle Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - findProductsToBundle
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getFindProductsToBundleSummary.getCount(),
-                    getFindProductsToBundleSummary.getPromptTokens(),
-                    getFindProductsToBundleSummary.getCompletionTokens(),
-                    getFindProductsToBundleSummary.getTotalTokens(),
-                    getFindProductsToBundleSummary.getInputCost(),
-                    getFindProductsToBundleSummary.getOutputCost(),
-                    getFindProductsToBundleSummary.getTotalCost(),
-                    getFindProductsToBundleSummary.getAvgCostPerRequest(),
-                    getFindProductsToBundleSummary.getAvgPromptTokens(),
-                    getFindProductsToBundleSummary.getAvgCompletionTokens()));
-
-            // generalConversation Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    AI COST SUMMARY - generalConversation
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Evaluations:              %d
-                    Prompt Tokens:            %,d
-                    Completion Tokens:        %,d
-                    Total Tokens:             %,d
-                    Input Cost:               $%.6f
-                    Output Cost:              $%.6f
-                    Total Cost:               $%.6f
-                    Avg Cost/Evaluation:      $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    """,
-                    getGeneralConversationSummary.getCount(),
-                    getGeneralConversationSummary.getPromptTokens(),
-                    getGeneralConversationSummary.getCompletionTokens(),
-                    getGeneralConversationSummary.getTotalTokens(),
-                    getGeneralConversationSummary.getInputCost(),
-                    getGeneralConversationSummary.getOutputCost(),
-                    getGeneralConversationSummary.getTotalCost(),
-                    getGeneralConversationSummary.getAvgCostPerRequest(),
-                    getGeneralConversationSummary.getAvgPromptTokens(),
-                    getGeneralConversationSummary.getAvgCompletionTokens()));
-
-            // Combined Total Section
-            sb.append("""
-                    
-                    ═══════════════════════════════════════════════════════════════
-                                    COMBINED TOTAL AI COST SUMMARY
-                    ═══════════════════════════════════════════════════════════════
-                    """);
-            sb.append(String.format("""
-                    Total AI Evaluations:     %d
-                      - getIntentSummary:     %d
-                      - getIntent:            %d
-                      - getCategories:        %d
-                      - findProductFromPrompt:%d
-                      - smartResponse:        %d
-                      - getUserInformation:   %d
-                      - getSpecificQuestionSubIntent: %d
-                      - getMultiProductQuestionSubIntent: %d
-                      - searchingByTitle:     %d
-                      - specificProductQuestion: %d
-                      - specificProductQuestionResponse: %d
-                      - specificProductSizeRecommendation: %d
-                      - similarBaseProduct:   %d
-                      - productCompareResponse: %d
-                      - findBaseProduct:      %d
-                      - findProductsToBundle: %d
-                      - generalConversation:  %d
-                    ───────────────────────────────────────────────────────────────
-                    Total Prompt Tokens:      %,d
-                    Total Completion Tokens:  %,d
-                    Total Tokens:             %,d
-                    ───────────────────────────────────────────────────────────────
-                    Total Input Cost:         $%.6f
-                    Total Output Cost:        $%.6f
-                    TOTAL COST:               $%.6f
-                    ───────────────────────────────────────────────────────────────
-                    Average Cost/Evaluation:  $%.6f
-                    Avg Prompt Tokens:        %.2f
-                    Avg Completion Tokens:    %.2f
-                    ═══════════════════════════════════════════════════════════════
-                    """,
-                    totalRequests, getIntentSummarySummary.getCount(), getIntentSummary.getCount(), getCategoriesSummary.getCount(), getFindProductSummary.getCount(), getSmartResponseSummary.getCount(), getGetUserInformationSummary.getCount(), getSpecificQuestionSubIntentSummary.getCount(), getMultiProductQuestionSubIntentSummary.getCount(), getSearchingByTitleSummary.getCount(), getSpecificProductQuestionSummary.getCount(), getSpecificProductQuestionResponseSummary.getCount(), getSpecificProductSizeRecommendationSummary.getCount(), getSimilarBaseProductSummary.getCount(), getProductCompareResponseSummary.getCount(), getFindBaseProductSummary.getCount(), getFindProductsToBundleSummary.getCount(), getGeneralConversationSummary.getCount(),
-                    totalPromptTokens, totalCompletionTokens, totalTokens,
-                    totalInputCost, totalOutputCost, totalCost,
-                    getAverageCostPerRequest(), getAveragePromptTokens(), getAverageCompletionTokens()));
+            if (totalRequests > 0) {
+                sb.append("""
+                        
+                        ═══════════════════════════════════════════════════════════════
+                                        COMBINED TOTAL AI COST SUMMARY
+                        ═══════════════════════════════════════════════════════════════
+                        """);
+                sb.append("Total AI Evaluations:     ").append(totalRequests).append('\n');
+                appendCountLine(sb, "getIntentSummary", getIntentSummarySummary.getCount());
+                appendCountLine(sb, "getIntent", getIntentSummary.getCount());
+                appendCountLine(sb, "getCategories", getCategoriesSummary.getCount());
+                appendCountLine(sb, "findProductFromPrompt", getFindProductSummary.getCount());
+                appendCountLine(sb, "smartResponse", getSmartResponseSummary.getCount());
+                appendCountLine(sb, "getUserInformation", getGetUserInformationSummary.getCount());
+                appendCountLine(sb, "getSpecificQuestionSubIntent", getSpecificQuestionSubIntentSummary.getCount());
+                appendCountLine(sb, "getMultiProductQuestionSubIntent", getMultiProductQuestionSubIntentSummary.getCount());
+                appendCountLine(sb, "searchingByTitle", getSearchingByTitleSummary.getCount());
+                appendCountLine(sb, "specificProductQuestion", getSpecificProductQuestionSummary.getCount());
+                appendCountLine(sb, "specificProductQuestionResponse", getSpecificProductQuestionResponseSummary.getCount());
+                appendCountLine(sb, "specificProductSizeRecommendation", getSpecificProductSizeRecommendationSummary.getCount());
+                appendCountLine(sb, "similarBaseProduct", getSimilarBaseProductSummary.getCount());
+                appendCountLine(sb, "productCompareResponse", getProductCompareResponseSummary.getCount());
+                appendCountLine(sb, "findBaseProduct", getFindBaseProductSummary.getCount());
+                appendCountLine(sb, "findProductsToBundle", getFindProductsToBundleSummary.getCount());
+                appendCountLine(sb, "generalConversation", getGeneralConversationSummary.getCount());
+                sb.append("───────────────────────────────────────────────────────────────\n");
+                sb.append(String.format("Total Prompt Tokens:      %,d%n", totalPromptTokens));
+                sb.append(String.format("Total Completion Tokens:  %,d%n", totalCompletionTokens));
+                sb.append(String.format("Total Tokens:             %,d%n", totalTokens));
+                sb.append("───────────────────────────────────────────────────────────────\n");
+                sb.append(String.format("Total Input Cost:         $%.6f%n", totalInputCost));
+                sb.append(String.format("Total Output Cost:        $%.6f%n", totalOutputCost));
+                sb.append(String.format("TOTAL COST:               $%.6f%n", totalCost));
+                sb.append("───────────────────────────────────────────────────────────────\n");
+                sb.append(String.format("Average Cost/Evaluation:  $%.6f%n", getAverageCostPerRequest()));
+                sb.append(String.format("Avg Prompt Tokens:        %.2f%n", getAveragePromptTokens()));
+                sb.append(String.format("Avg Completion Tokens:    %.2f%n", getAverageCompletionTokens()));
+                sb.append("═══════════════════════════════════════════════════════════════\n");
+            }
 
             return sb.toString();
         }

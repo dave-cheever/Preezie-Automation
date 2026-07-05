@@ -142,6 +142,44 @@
     return configObj;
   }
 
+  function getValidationFromConfig(spreadsheetId) {
+    var config = getConfigValues(spreadsheetId);
+    var overrideValidation =
+      karate.properties['validation'] ||
+      java.lang.System.getProperty('validation') ||
+      java.lang.System.getenv('VALIDATION_MODE');
+    var rawValidation = overrideValidation || config.validation || config.Validation || config.validationMode || '2';
+    var validation = ('' + rawValidation).trim();
+
+    if (validation !== '1' && validation !== '2') {
+      karate.log('⚠️  Invalid validation mode from Google Sheets config:', rawValidation, '- defaulting to 2');
+      validation = '2';
+    }
+
+    karate.log('📋 Validation mode from Google Sheets config:', validation === '1' ? '1 (AI judge)' : '2 (API analyser)');
+    return validation;
+  }
+
+  function getEnabledValidationAgents(spreadsheetId) {
+    var lines = fetchSheetAsCsv(spreadsheetId, 'ValidationConfig');
+    var rows = csvToObjects(lines);
+    var enabledAgents = [];
+
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var agentName = row.AgentName || row.agentName || '';
+      var enabled = row.Enabled;
+      var enabledFlag = enabled === true || enabled === 'TRUE' || enabled === 'true' || enabled === '1';
+
+      if (agentName && enabledFlag) {
+        enabledAgents.push(('' + agentName).trim());
+      }
+    }
+
+    karate.log('Loaded validation config from Google Sheets:', rows.length, 'total,', enabledAgents.length, 'enabled');
+    return enabledAgents;
+  }
+
   function getAllEnabledTestData(spreadsheetId) {
     var tenants = getTenantConfig(spreadsheetId);
     var allTestData = [];
@@ -201,7 +239,9 @@
     getTestDataForTenant: getTestDataForTenant,
     getAllEnabledTestData: getAllEnabledTestData,
     getConfigValues: getConfigValues,
-    getEnvironmentFromConfig: getEnvironmentFromConfig
+    getEnvironmentFromConfig: getEnvironmentFromConfig,
+    getValidationFromConfig: getValidationFromConfig,
+    getEnabledValidationAgents: getEnabledValidationAgents
   };
 
 })()

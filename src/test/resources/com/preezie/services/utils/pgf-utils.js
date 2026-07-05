@@ -584,14 +584,26 @@
         lines.push('    ' + parsedContent.validOptionsFromPrompt);
       }
 
-      // Issues
-      var pcIssues = parsedContent.issues && parsedContent.issues.length > 0 ? parsedContent.issues : null;
-      var valIssues = validation.issues && validation.issues.length > 0 ? validation.issues : null;
-      var issues = pcIssues || valIssues;
-      if (issues && issues.length > 0) {
-        lines.push('  Issues:');
-        for (var i = 0; i < issues.length; i++) {
-          lines.push('    - ' + issues[i]);
+      var validationSeverity = validation.severity || (validation.pass === true ? 'pass' : 'fail');
+      var pcWarnings = parsedContent.warnings && parsedContent.warnings.length > 0 ? parsedContent.warnings : null;
+      var valWarnings = validation.warnings && validation.warnings.length > 0 ? validation.warnings : null;
+      var warnings = pcWarnings || valWarnings;
+      if (validationSeverity === 'warning' && warnings && warnings.length > 0) {
+        lines.push('  Warnings:');
+        for (var i = 0; i < warnings.length; i++) {
+          lines.push('    - ' + warnings[i]);
+        }
+      }
+
+      if (validationSeverity !== 'warning') {
+        var pcIssues = parsedContent.issues && parsedContent.issues.length > 0 ? parsedContent.issues : null;
+        var valIssues = validation.issues && validation.issues.length > 0 ? validation.issues : null;
+        var issues = pcIssues || valIssues;
+        if (issues && issues.length > 0) {
+          lines.push('  Issues:');
+          for (var j = 0; j < issues.length; j++) {
+            lines.push('    - ' + issues[j]);
+          }
         }
       }
 

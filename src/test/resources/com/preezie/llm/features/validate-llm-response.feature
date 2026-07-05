@@ -19,7 +19,7 @@ Scenario: LLM response should align with prompt intent
   * def evaluatorPayload =
   """
   {
-    "model": "gpt-4.1",
+    "model": "gpt-5.4-mini",
     "messages": [
       { "role": "system", "content": read('classpath:llm/validators/evaluator-prompt.txt') },
       { "role": "user", "content": "#(evaluatorPrompt)" }

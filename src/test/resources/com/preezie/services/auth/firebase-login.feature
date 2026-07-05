@@ -8,6 +8,7 @@ Scenario: Login and obtain tokens
   * if (!apiKey || ('' + apiKey).trim() == '') karate.fail('Missing firebaseApiKey. Set FIREBASE_API_KEY or pass firebaseApiKey argument.')
   * if (!email || ('' + email).trim() == '') karate.fail('Missing firebaseEmail. Set FIREBASE_EMAIL or pass firebaseEmail argument.')
   * if (!password || ('' + password).trim() == '') karate.fail('Missing firebasePassword. Set FIREBASE_PASSWORD or pass firebasePassword argument.')
+  * karate.log('🔑 firebaseApiKey used:', apiKey)
 
   Given url 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + apiKey
 #  And param key = apiKey

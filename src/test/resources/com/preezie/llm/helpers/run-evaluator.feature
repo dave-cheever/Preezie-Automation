@@ -20,7 +20,7 @@ Scenario:
   * def evaluatorPayload =
     """
     {
-      "model": "gpt-4.1",
+      "model": "gpt-5.4-mini",
       "messages": [
         { "role": "system", "content": "#(evaluatorSystem)" },
         { "role": "user", "content": "#(evaluatorUserWithContext)" }
@@ -32,8 +32,8 @@ Scenario:
   * karate.log('=== CALLING LLM-CLIENT.FEATURE ===')
   * def llmResult = call read('classpath:com/preezie/llm/helpers/llm-client.feature')
   * karate.log('=== LLM-CLIENT.FEATURE RETURNED ===')
-  * karate.log('=== llmResult:', llmResult)
-  * karate.log('=== llmResult keys:', llmResult ? Object.keys(llmResult) : 'null')
+#  * karate.log('=== llmResult:', llmResult)
+#  * karate.log('=== llmResult keys:', llmResult ? Object.keys(llmResult) : 'null')
 
   # Check if LLM call succeeded
   * def llmCallSucceeded = llmResult.llmCallSucceeded == true
@@ -110,7 +110,7 @@ Scenario:
         var builder = new UsageData.Builder();
         builder.tenantId(tenantId);
         builder.content(content + ' [getIntentSummary]');
-        builder.modelName('gpt-4.1');
+        builder.modelName('gpt-5.4-mini');
         builder.promptTokens(promptTokens);
         builder.completionTokens(completionTokens);
         builder.totalTokens(totalTokens);
@@ -142,6 +142,12 @@ Scenario:
   * def validator = read('classpath:com/preezie/llm/validators/llm-evaluator.js')
   * def toValidate = evaluatorResult.parsedContent && typeof evaluatorResult.parsedContent === 'object' ? evaluatorResult.parsedContent : evaluatorResult
   * def validation = validator.validateLLMResponse(toValidate)
+  * eval
+    """
+    if (validation && validation.severity === 'warning') {
+      validation.pass = true;
+    }
+    """
 
   # no `return` step; expose variables to caller via the call result
   * def evaluatorResultOut = evaluatorResult

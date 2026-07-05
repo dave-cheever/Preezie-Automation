@@ -6,6 +6,7 @@ Feature: Chat service - send message and return traceId
 
   Scenario: send and get traceId
     * def content = __arg.content
+    * def cmsIdToken = __arg.cmsIdToken || karate.get('cmsIdToken')
     * match content != null
     * match content != ''
 
@@ -24,6 +25,17 @@ Feature: Chat service - send message and return traceId
     * set req.lastContent = lastContentLocal
     * set req.visitorId = visitorIdLocal
 
+    * karate.log('🧾 Chat request payload (Postman copy):')
+    * karate.log(karate.pretty(req))
+    * karate.log('🧾 Chat request meta:')
+    * karate.log('   baseUrl:', baseUrlLocal)
+    * karate.log('   tenantId:', tenantIdLocal)
+    * karate.log('   sessionId:', sessionIdLocal)
+    * karate.log('   visitorId:', visitorIdLocal)
+    * karate.log('   lastContent:', lastContentLocal)
+    * karate.log('   websiteUrl:', websiteUrlLocal)
+    * karate.log('   content:', content)
+
     Given url baseUrlLocal
 
     And path '/api/chat'
@@ -35,6 +47,10 @@ Feature: Chat service - send message and return traceId
     # Chat API may return 500 due to search issues, but traceId is still present
     
     * def traceId = extractTraceId(responseHeaders, response)
+    * if (!traceId) karate.log('⚠️ Chat API responseStatus:', responseStatus)
+    * if (!traceId) karate.log('⚠️ Chat API response type:', typeof response)
+    * if (!traceId) karate.log('⚠️ Chat API response preview:', typeof response === 'string' ? response.substring(0, 500) : karate.pretty(response).substring(0, 500))
+    * if (!traceId) karate.fail('Chat API did not return a traceId. status=' + responseStatus)
     * match traceId != null
     * match traceId != ''
 

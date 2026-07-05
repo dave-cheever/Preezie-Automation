@@ -20,7 +20,7 @@ Scenario: Test usage CSV writing
       var builder = new UsageData.Builder();
       builder.tenantId('test-tenant');
       builder.content('test-content');
-      builder.modelName('gpt-4.1');
+      builder.modelName('gpt-5.4-mini');
       builder.promptTokens(100);
       builder.completionTokens(50);
       builder.totalTokens(150);

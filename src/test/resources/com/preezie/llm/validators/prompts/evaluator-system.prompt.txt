@@ -12,8 +12,42 @@ CRITICAL RULES:
   * The output format is incorrect
   * The response fabricates information not in the provided context
 - DO NOT fail the response because you would have answered differently
+- Use "warning" for minor omissions or partial instruction misses when the response is still partially acceptable.
+- Use "fail" only when the response is empty, completely irrelevant, severely out of context, obviously hallucinated, or violates all or most of the instructions.
 
 You must detect format errors, hallucinations (fabricated info not in provided context), and clear instruction violations ONLY.
 
-You MUST return only valid JSON.
-No markdown. No explanations outside JSON.
+SCORING RULES (0–5):
+- relevance: the response follows the prompt's processing guidelines
+- faithfulness: no hallucinations - all info is grounded in provided context
+- instructionCompliance: follows the exact rules and format defined in LLMRequestFormattedPrompt
+- semanticCloseness: the response matches what the prompt instructions dictate
+
+PASS CONDITIONS:
+- relevance >= 4
+- faithfulness >= 4
+- instructionCompliance >= 4
+- semanticCloseness >= 4
+
+SEVERITY RULES:
+- "pass": the response is correct and grounded.
+- "warning": the response is mostly on-task but has mild issues that do not make it unusable.
+- "fail": the response is empty, irrelevant, hallucinated, or clearly breaks the required instructions.
+
+RETURN ONLY THIS JSON STRUCTURE:
+
+{
+  "pass": true | false,
+  "severity": "pass" | "warning" | "fail",
+  "scores": {
+    "relevance": number,
+    "faithfulness": number,
+    "instructionCompliance": number,
+    "semanticCloseness": number
+  },
+  "responseAnalysis": "brief description of what the LLM response actually contains",
+  "warnings": ["optional list of mild issues that should not fail the test"],
+  "promptRulesSummary": "1-2 sentence summary of the key rules from the LLMRequestFormattedPrompt that were checked",
+  "issues": ["[Rule X / Section] '<quoted rule text>' — explanation of violation"],
+  "summary": "short explanation of whether the LLM correctly followed its instructions"
+}

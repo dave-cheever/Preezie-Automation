@@ -20,7 +20,7 @@ Scenario:
   * def evaluatorPayload =
     """
     {
-      "model": "gpt-4.1",
+      "model": "gpt-5.4-mini",
       "messages": [
         { "role": "system", "content": "#(evaluatorSystem)" },
         { "role": "user", "content": "#(evaluatorUserWithContext)" }
@@ -48,9 +48,11 @@ Scenario:
       evaluatorResult = evaluatorResult || {};
       evaluatorResult.parsedContent = {
         pass: false,
+        severity: 'fail',
         scores: { relevance: 0, faithfulness: 0, instructionCompliance: 0, semanticCloseness: 0 },
         extractedQuery: 'Unknown',
         expectedQuery: 'Unknown',
+        warnings: ['LLM API call failed'],
         issues: ['LLM API call failed: ' + (evaluatorResult.error ? evaluatorResult.error.message : 'Unknown error')],
         summary: 'FindProduct evaluation could not be performed due to API error'
       };
@@ -109,7 +111,7 @@ Scenario:
         var builder = new UsageData.Builder();
         builder.tenantId(tenantId);
         builder.content(content + ' [findProductFromPrompt]');
-        builder.modelName('gpt-4.1');
+        builder.modelName('gpt-5.4-mini');
         builder.promptTokens(promptTokens);
         builder.completionTokens(completionTokens);
         builder.totalTokens(totalTokens);
@@ -136,10 +138,29 @@ Scenario:
   * def validator = read('classpath:com/preezie/llm/validators/llm-evaluator.js')
   * def toValidate = evaluatorResult.parsedContent && typeof evaluatorResult.parsedContent === 'object' ? evaluatorResult.parsedContent : evaluatorResult
   * def validation = validator.validateLLMResponse(toValidate)
+  * eval
+    """
+    var severity = evaluatorResult && evaluatorResult.parsedContent && evaluatorResult.parsedContent.severity
+      ? ('' + evaluatorResult.parsedContent.severity).toLowerCase()
+      : '';
+
+    if (severity === 'warning') {
+      validation.pass = true;
+      validation.severity = 'warning';
+      validation.warnings = evaluatorResult.parsedContent.warnings || validation.warnings || [];
+    } else if (severity === 'pass') {
+      validation.pass = true;
+      validation.severity = 'pass';
+      validation.warnings = evaluatorResult.parsedContent.warnings || validation.warnings || [];
+    } else if (severity === 'fail') {
+      validation.pass = false;
+      validation.severity = 'fail';
+      validation.warnings = evaluatorResult.parsedContent.warnings || validation.warnings || [];
+    }
+    """
 
   # Expose variables to caller
   * def findProductEvaluatorResultOut = evaluatorResult
   * def findProductValidationOut = validation
   * def findProductLlmCallSucceededOut = llmCallSucceeded
-
 

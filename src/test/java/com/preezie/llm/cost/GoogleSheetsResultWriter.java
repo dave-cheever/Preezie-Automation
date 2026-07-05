@@ -563,6 +563,8 @@ public class GoogleSheetsResultWriter {
             data.add(Arrays.asList("")); // Empty row
         }
         
+        data = filterInactiveCostSummarySections(data);
+
         // Write data to sheet
         writeToSheet(sheetName, data);
         
@@ -643,6 +645,127 @@ public class GoogleSheetsResultWriter {
             }
         }
         return null;
+    }
+
+    private List<List<Object>> filterInactiveCostSummarySections(List<List<Object>> data) {
+        List<List<Object>> filtered = new ArrayList<>();
+
+        int i = 0;
+        while (i < data.size()) {
+            if (isSeparatorRow(data, i) && i + 1 < data.size()) {
+                String title = getCell(data.get(i + 1), 0);
+                if ("COMBINED TOTAL AI COST SUMMARY".equals(title)) {
+                    i = appendCombinedCostSection(data, i, filtered);
+                    continue;
+                }
+
+                if (title != null && title.startsWith("AI COST SUMMARY - ")) {
+                    i = appendSingleCostSectionIfActive(data, i, filtered);
+                    continue;
+                }
+            }
+
+            filtered.add(data.get(i));
+            i++;
+        }
+
+        return filtered;
+    }
+
+    private int appendSingleCostSectionIfActive(List<List<Object>> data, int startIndex, List<List<Object>> filtered) {
+        int blankIndex = findNextBlankRow(data, startIndex);
+        if (blankIndex < 0) {
+            for (int i = startIndex; i < data.size(); i++) {
+                filtered.add(data.get(i));
+            }
+            return data.size();
+        }
+
+        int evaluations = parseIntSafe(getCell(data.get(startIndex + 4), 1));
+        if (evaluations <= 0) {
+            return blankIndex + 1;
+        }
+
+        for (int i = startIndex; i <= blankIndex; i++) {
+            filtered.add(data.get(i));
+        }
+        return blankIndex + 1;
+    }
+
+    private int appendCombinedCostSection(List<List<Object>> data, int startIndex, List<List<Object>> filtered) {
+        int metricsStart = startIndex + 3;
+        int countsStart = startIndex + 5;
+        int firstBlank = findNextBlankRow(data, countsStart);
+        if (firstBlank < 0) {
+            for (int i = startIndex; i < data.size(); i++) {
+                filtered.add(data.get(i));
+            }
+            return data.size();
+        }
+
+        int totalsStart = firstBlank + 1;
+        int secondBlank = findNextBlankRow(data, totalsStart);
+        if (secondBlank < 0) {
+            secondBlank = data.size() - 1;
+        }
+
+        for (int i = startIndex; i <= metricsStart + 1; i++) {
+            filtered.add(data.get(i));
+        }
+
+        for (int i = countsStart; i < firstBlank; i++) {
+            List<Object> row = data.get(i);
+            if (row.size() >= 2) {
+                int count = parseIntSafe(getCell(row, 1));
+                if (count > 0) {
+                    filtered.add(row);
+                }
+            }
+        }
+
+        filtered.add(data.get(firstBlank));
+
+        for (int i = totalsStart; i <= secondBlank; i++) {
+            filtered.add(data.get(i));
+        }
+
+        return secondBlank + 1;
+    }
+
+    private boolean isSeparatorRow(List<List<Object>> data, int index) {
+        if (index < 0 || index >= data.size()) {
+            return false;
+        }
+        List<Object> row = data.get(index);
+        return row != null && row.size() == 1 && "═══════════════════════════════════════════════════════════════".equals(getCell(row, 0));
+    }
+
+    private int findNextBlankRow(List<List<Object>> data, int startIndex) {
+        for (int i = startIndex; i < data.size(); i++) {
+            if (isBlankRow(data.get(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private boolean isBlankRow(List<Object> row) {
+        return row == null || row.isEmpty() || (row.size() == 1 && getCell(row, 0).trim().isEmpty());
+    }
+
+    private String getCell(List<Object> row, int index) {
+        if (row == null || index < 0 || index >= row.size() || row.get(index) == null) {
+            return "";
+        }
+        return String.valueOf(row.get(index));
+    }
+
+    private int parseIntSafe(String value) {
+        try {
+            return Integer.parseInt(value.replace(",", "").trim());
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     // Inner classes for data transfer
@@ -918,4 +1041,3 @@ public class GoogleSheetsResultWriter {
         public void setTotalCost(double totalCost) { this.totalCost = totalCost; }
     }
 }
-

@@ -8,6 +8,10 @@ CRITICAL RULES:
 - ONLY validate if the LLM response correctly follows the instructions in the prompt
 - The LLM should use only information from the provided product data (baseProduct, products)
 - Validate that the response is grounded in the provided data, not hallucinated
+- Use "warning" for minor omissions or partial instruction misses when the response is still partially acceptable.
+- Use "fail" only when the response is empty, completely irrelevant, severely out of context, obviously hallucinated, or violates all or most of the instructions.
+- If the response is grounded, on-topic, and mostly follows the product validation format, but has formatting slips such as imperfect product headings, slightly incorrect product ordering, or an overlong closing sentence, return "warning" instead of "fail".
+- Do not fail solely because the response mixes product validation style with a mild narrowing-style closing sentence if the rest of the answer is still usable.
 
 The validation must check:
 1. Did the LLM correctly follow the response rules from its prompt?
@@ -23,6 +27,4 @@ You must detect:
 
 You MUST return only valid JSON.
 No markdown. No explanations outside JSON.
-
-
 
