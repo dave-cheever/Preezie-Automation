@@ -70,7 +70,7 @@ function fn() {
       firebaseApiKey: 'AIzaSyA_wI3Cbepyi68qj9y7Cm1KLlBub8PhMNQ'
     },
     prod: {
-      chatBaseUrl: 'https://prod-greenback-app-chat.azurewebsites.net',
+      chatBaseUrl: 'https://chatapi.shopassistant-ai.com',
       cmsBaseUrl: 'https://prod-greenback-app-cms-gateway.azurewebsites.net',
       firebaseApiKey: 'AIzaSyA_wI3Cbepyi68qj9y7Cm1KLlBub8PhMNQ'
     }
