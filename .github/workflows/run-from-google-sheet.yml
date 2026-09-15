@@ -1,35 +1,85 @@
-name: Run tests from Google Sheet
+name: API Tests
 
 on:
+  push:
+    branches:
+      - master
+
+  pull_request:
+    branches:
+      - master
+
+  workflow_dispatch:
+
   repository_dispatch:
-    types: [run-google-sheet-test]
+    types:
+      - run-google-sheet-test
 
 jobs:
-  run-tests:
+  api-tests:
     runs-on: ubuntu-latest
+
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+      FIREBASE_EMAIL: ${{ secrets.FIREBASE_EMAIL }}
+      FIREBASE_PASSWORD: ${{ secrets.FIREBASE_PASSWORD }}
+      CMS_BASE_URL: ${{ secrets.CMS_BASE_URL }}
+      GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Show payload
-        run: |
-          echo "Spreadsheet ID: ${{ github.event.client_payload.spreadsheetId }}"
-          echo "Spreadsheet URL: ${{ github.event.client_payload.spreadsheetUrl }}"
-          echo "Run cell: ${{ github.event.client_payload.runCell }}"
+      - name: Set up JDK 17 and cache Maven
+        uses: actions/setup-java@v6
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
 
-      - name: Run automated tests
-        run: |
-          echo "Run your test command here"
-          # example:
-          # mvn test
+      - name: Build and run tests
+        id: run_tests
+        run: mvn -B -V -e -DskipTests=false test
 
-      - name: Reset runTest to FALSE
-        env:
-          GOOGLE_SHEETS_API_KEY: ${{ secrets.GOOGLE_SHEETS_API_KEY }}
-          SPREADSHEET_ID: ${{ github.event.client_payload.spreadsheetId }}
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-reports
+          path: |
+            target/surefire-reports
+            target/karate-reports
+          if-no-files-found: warn
+
+      - name: Update Google Sheet on success
+        if: success() && github.event_name == 'repository_dispatch'
         run: |
-          curl -X PUT \
-            "https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/config!B2?valueInputOption=USER_ENTERED&key=${GOOGLE_SHEETS_API_KEY}" \
+          curl -X POST "${{ secrets.APPS_SCRIPT_WEBAPP_URL }}" \
             -H "Content-Type: application/json" \
-            -d '{"range":"config!B2","majorDimension":"ROWS","values":[["FALSE"]]}'
+            -d '{
+              "spreadsheetId": "${{ github.event.client_payload.spreadsheetId }}",
+              "sheetName": "${{ github.event.client_payload.sheetName }}",
+              "runCell": "${{ github.event.client_payload.runCell }}",
+              "statusCell": "${{ github.event.client_payload.statusCell }}",
+              "lastRunCell": "${{ github.event.client_payload.lastRunCell }}",
+              "messageCell": "${{ github.event.client_payload.messageCell }}",
+              "status": "PASSED",
+              "message": "Automation test completed successfully."
+            }'
+
+      - name: Update Google Sheet on failure
+        if: failure() && github.event_name == 'repository_dispatch'
+        run: |
+          curl -X POST "${{ secrets.APPS_SCRIPT_WEBAPP_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "spreadsheetId": "${{ github.event.client_payload.spreadsheetId }}",
+              "sheetName": "${{ github.event.client_payload.sheetName }}",
+              "runCell": "${{ github.event.client_payload.runCell }}",
+              "statusCell": "${{ github.event.client_payload.statusCell }}",
+              "lastRunCell": "${{ github.event.client_payload.lastRunCell }}",
+              "messageCell": "${{ github.event.client_payload.messageCell }}",
+              "status": "FAILED",
+              "message": "Automation test failed."
+            }'
