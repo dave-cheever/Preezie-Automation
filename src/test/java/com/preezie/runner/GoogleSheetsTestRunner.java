@@ -14,7 +14,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -103,6 +105,7 @@ public class GoogleSheetsTestRunner {
     static class FailedTestCase {
         String tenantId;
         String tenantName;
+        String testArea;
         String content;
         String traceId;
         List<AgentFailure> agentFailures = new ArrayList<>();
@@ -144,6 +147,7 @@ public class GoogleSheetsTestRunner {
                     FailedTestCase testCase = new FailedTestCase();
                     testCase.tenantId = failureNode.path("tenantId").asText("");
                     testCase.tenantName = failureNode.path("tenantName").asText("Unknown");
+                    testCase.testArea = failureNode.path("testArea").asText("");
                     testCase.content = failureNode.path("content").asText("");
                     testCase.traceId = failureNode.path("traceId").asText("N/A");
                     
@@ -193,40 +197,48 @@ public class GoogleSheetsTestRunner {
         System.out.println("║  Pass Rate:        " + padRight(actualResults.passRate + "%", 40) + "║");
         System.out.println("╚══════════════════════════════════════════════════════════════╝");
         
-        // Print failed test details
+        // Print failed test details grouped by testArea
         if (!actualResults.failedTestCases.isEmpty()) {
             System.out.println("\n");
             System.out.println("╔══════════════════════════════════════════════════════════════╗");
             System.out.println("║                    FAILED TESTS DETAILS                       ║");
             System.out.println("╚══════════════════════════════════════════════════════════════╝");
-            
-            for (int i = 0; i < actualResults.failedTestCases.size(); i++) {
-                FailedTestCase testCase = actualResults.failedTestCases.get(i);
-                System.out.println("\n--- Failure " + (i + 1) + " of " + actualResults.failedTestCases.size() + " ---");
-                System.out.println("  Tenant:      " + testCase.tenantName + " (" + testCase.tenantId + ")");
-                System.out.println("  Content:     " + testCase.content);
-                System.out.println("  Trace ID:    " + testCase.traceId);
-                
-                // Display all failed agents for this test case
-                for (AgentFailure agentFail : testCase.agentFailures) {
-                    System.out.println("  Failed At:   " + agentFail.failedStage);
-                    if (agentFail.expected != null && !agentFail.expected.isEmpty()) {
-                        System.out.println("  Expected:    " + agentFail.expected);
-                        System.out.println("  Actual:      " + agentFail.actual);
-                    }
-                    if (agentFail.errorMessage != null && !agentFail.errorMessage.isEmpty()) {
-                        System.out.println("  Error:       " + agentFail.errorMessage);
-                    }
-                    // Display analyser details if available
-                    if (agentFail.result != null && !agentFail.result.isEmpty()) {
-                        System.out.println("  Result:      " + agentFail.result);
-                    }
-                    if (agentFail.intent != null && !agentFail.intent.isEmpty()) {
-                        System.out.println("  Intent:      " + agentFail.intent);
-                    }
-                    // Add blank line between agents if not the last one
-                    if (testCase.agentFailures.indexOf(agentFail) < testCase.agentFailures.size() - 1) {
-                        System.out.println();
+
+            Map<String, List<FailedTestCase>> byArea = new LinkedHashMap<>();
+            for (FailedTestCase tc : actualResults.failedTestCases) {
+                String area = (tc.testArea != null && !tc.testArea.isEmpty()) ? tc.testArea : tc.tenantName;
+                byArea.computeIfAbsent(area, k -> new ArrayList<>()).add(tc);
+            }
+
+            int globalNum = 0;
+            for (Map.Entry<String, List<FailedTestCase>> entry : byArea.entrySet()) {
+                System.out.println("\n▶ TEST AREA: " + entry.getKey() + " (" + entry.getValue().size() + " failed)");
+                for (FailedTestCase testCase : entry.getValue()) {
+                    globalNum++;
+                    System.out.println("\n--- Failure " + globalNum + " of " + actualResults.failedTestCases.size() + " ---");
+                    System.out.println("  Area:        " + (testCase.testArea != null && !testCase.testArea.isEmpty() ? testCase.testArea : "N/A"));
+                    System.out.println("  Tenant:      " + testCase.tenantName + " (" + testCase.tenantId + ")");
+                    System.out.println("  Content:     " + testCase.content);
+                    System.out.println("  Trace ID:    " + testCase.traceId);
+
+                    for (AgentFailure agentFail : testCase.agentFailures) {
+                        System.out.println("  Failed At:   " + agentFail.failedStage);
+                        if (agentFail.expected != null && !agentFail.expected.isEmpty()) {
+                            System.out.println("  Expected:    " + agentFail.expected);
+                            System.out.println("  Actual:      " + agentFail.actual);
+                        }
+                        if (agentFail.errorMessage != null && !agentFail.errorMessage.isEmpty()) {
+                            System.out.println("  Error:       " + agentFail.errorMessage);
+                        }
+                        if (agentFail.result != null && !agentFail.result.isEmpty()) {
+                            System.out.println("  Result:      " + agentFail.result);
+                        }
+                        if (agentFail.intent != null && !agentFail.intent.isEmpty()) {
+                            System.out.println("  Intent:      " + agentFail.intent);
+                        }
+                        if (testCase.agentFailures.indexOf(agentFail) < testCase.agentFailures.size() - 1) {
+                            System.out.println();
+                        }
                     }
                 }
             }
@@ -309,6 +321,7 @@ public class GoogleSheetsTestRunner {
                     failedTest.setPipelineValidation(agentFail.pipelineValidation);
                     failedTest.setAnomalies(agentFail.anomalies);
                     failedTest.setQualityAssessment(agentFail.qualityAssessment);
+                    failedTest.setTestArea(testCase.testArea);
                     testResults.addFailedTest(failedTest);
                 }
             }

@@ -132,12 +132,13 @@ public class GoogleSheetsResultWriter {
             data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
             data.add(Arrays.asList("FAILED TESTS DETAILS"));
             data.add(Arrays.asList("═══════════════════════════════════════════════════════════════"));
-            data.add(Arrays.asList("Tenant ID", "Tenant Name", "Content", "Trace ID", "Failed Stage", "Error Message", "Result", "Intent", "Pipeline Validation", "Anomalies & Issues", "Quality Assessment"));
+            data.add(Arrays.asList("Tenant ID", "Tenant Name", "Test Area", "Content", "Trace ID", "Failed Stage", "Error Message", "Result", "Intent", "Pipeline Validation", "Anomalies & Issues", "Quality Assessment"));
             
             for (FailedTest failedTest : results.getFailedTests()) {
                 data.add(Arrays.asList(
                     failedTest.getTenantId(),
                     failedTest.getTenantName(),
+                    failedTest.getTestArea() != null ? failedTest.getTestArea() : "",
                     failedTest.getContent(),
                     failedTest.getTraceId(),
                     failedTest.getFailedStage(),
@@ -800,6 +801,7 @@ public class GoogleSheetsResultWriter {
     public static class FailedTest {
         private String tenantId;
         private String tenantName;
+        private String testArea;
         private String content;
         private String traceId;
         private String failedStage;
@@ -821,6 +823,8 @@ public class GoogleSheetsResultWriter {
 
         public String getTenantId() { return tenantId; }
         public String getTenantName() { return tenantName; }
+        public String getTestArea() { return testArea; }
+        public void setTestArea(String testArea) { this.testArea = testArea; }
         public String getContent() { return content; }
         public String getTraceId() { return traceId; }
         public String getFailedStage() { return failedStage; }
