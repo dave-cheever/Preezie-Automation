@@ -37,7 +37,8 @@ Scenario: Run all enabled tests from Google Sheets
       "failed": 0,
       "testFailures": {},
       "testWarnings": {},
-      "allTestResults": {}
+      "allTestResults": {},
+      "byArea": {}
     }
     """
 
@@ -230,6 +231,7 @@ Scenario: Run all enabled tests from Google Sheets
       var content = testCase.content;
       var tenantId = testCase.tenantId;
       var tenantName = testCase.tenantName;
+      var testArea = testCase.testArea || tenantName;
       var sessionId = testCase.sessionId || null;
       var expectedSafe = ('' + (testCase.expectedSafe !== undefined ? testCase.expectedSafe : 'true')).toLowerCase() === 'true';
       var traceId = null;
@@ -246,8 +248,9 @@ Scenario: Run all enabled tests from Google Sheets
             validationMode: validationModeName,
             tenant: tenantName,
             tenantId: tenantId,
+            testArea: testArea,
             content: content,
-            traceId: key.split('||')[1] || 'N/A',
+            traceId: traceId || 'N/A',
             failures: []
           };
         }
@@ -264,8 +267,9 @@ Scenario: Run all enabled tests from Google Sheets
             validationMode: validationModeName,
             tenant: tenantName,
             tenantId: tenantId,
+            testArea: testArea,
             content: content,
-            traceId: key.split('||')[1] || 'N/A',
+            traceId: traceId || 'N/A',
             warnings: []
           };
         }
@@ -634,7 +638,7 @@ Scenario: Run all enabled tests from Google Sheets
       try {
         var chatToken = getCmsToken();
         if (!chatToken) {
-          testKey = content + '||NO_TOKEN';
+          testKey = testArea + '::' + content + '||NO_TOKEN';
           recordFailure(testKey, {
             stage: 'CMS Auth',
             agentName: 'CMS Auth',
@@ -651,12 +655,15 @@ Scenario: Run all enabled tests from Google Sheets
           setAllResult(testKey, {
             tenant: tenantName,
             tenantId: tenantId,
+            testArea: testArea,
             content: content,
             traceId: 'NO_TOKEN',
             validationMode: validationModeName,
             status: 'FAILED'
           });
           results.failed++;
+          if (!results.byArea[testArea]) results.byArea[testArea] = { passed: 0, warnings: 0, failed: 0 };
+          results.byArea[testArea].failed++;
           return;
         }
 
@@ -673,7 +680,7 @@ Scenario: Run all enabled tests from Google Sheets
         visitorRotation.recordMessageSent();
 
         if (!chat.traceId) {
-          testKey = content + '||NO_TRACE';
+          testKey = testArea + '::' + content + '||NO_TRACE';
           recordFailure(testKey, {
             stage: 'Chat API',
             agentName: 'Chat API',
@@ -690,17 +697,20 @@ Scenario: Run all enabled tests from Google Sheets
           setAllResult(testKey, {
             tenant: tenantName,
             tenantId: tenantId,
+            testArea: testArea,
             content: content,
             traceId: 'NO_TRACE',
             validationMode: validationModeName,
             status: 'FAILED'
           });
           results.failed++;
+          if (!results.byArea[testArea]) results.byArea[testArea] = { passed: 0, warnings: 0, failed: 0 };
+          results.byArea[testArea].failed++;
           return;
         }
 
         traceId = chat.traceId;
-        testKey = content + '||' + traceId;
+        testKey = testArea + '::' + content + '||' + traceId;
         karate.log('TraceId:', traceId);
 
         if (validationMode === '1') {
@@ -718,6 +728,7 @@ Scenario: Run all enabled tests from Google Sheets
           setAllResult(testKey, {
             tenant: tenantName,
             tenantId: tenantId,
+            testArea: testArea,
             content: content,
             traceId: traceId,
             validationMode: validationModeName,
@@ -731,16 +742,21 @@ Scenario: Run all enabled tests from Google Sheets
               recordFailure(testKey, aiJudgeResult.failures[ai]);
             }
             results.failed++;
+            if (!results.byArea[testArea]) results.byArea[testArea] = { passed: 0, warnings: 0, failed: 0 };
+            results.byArea[testArea].failed++;
             karate.log('[FAILED] AI judge validation failed');
           } else {
             results.passed++;
+            if (!results.byArea[testArea]) results.byArea[testArea] = { passed: 0, warnings: 0, failed: 0 };
             if (aiJudgeResult.warnings && aiJudgeResult.warnings.length > 0) {
               results.warnings = results.warnings + aiJudgeResult.warnings.length;
+              results.byArea[testArea].warnings++;
               for (var aw = 0; aw < aiJudgeResult.warnings.length; aw++) {
                 recordWarning(testKey, aiJudgeResult.warnings[aw]);
               }
               karate.log('[PASSED WITH WARNING] AI judge validation passed with warnings');
             } else {
+              results.byArea[testArea].passed++;
               karate.log('[PASSED] AI judge validation passed');
             }
           }
@@ -751,6 +767,7 @@ Scenario: Run all enabled tests from Google Sheets
           setAllResult(testKey, {
             tenant: tenantName,
             tenantId: tenantId,
+            testArea: testArea,
             content: content,
             traceId: traceId,
             validationMode: validationModeName,
@@ -761,15 +778,21 @@ Scenario: Run all enabled tests from Google Sheets
           if (!analyserResult.pass) {
             recordFailure(testKey, analyserResult.failures[0]);
             results.failed++;
+            if (!results.byArea[testArea]) results.byArea[testArea] = { passed: 0, warnings: 0, failed: 0 };
+            results.byArea[testArea].failed++;
             karate.log('[FAILED] Analyser validation failed');
           } else {
             results.passed++;
+            if (!results.byArea[testArea]) results.byArea[testArea] = { passed: 0, warnings: 0, failed: 0 };
+            results.byArea[testArea].passed++;
             karate.log('[PASSED] Analyser validation passed');
           }
         }
       } catch (e) {
         results.failed++;
-        var exceptionKey = content + '||' + (traceId || 'EXCEPTION');
+        if (!results.byArea[testArea]) results.byArea[testArea] = { passed: 0, warnings: 0, failed: 0 };
+        results.byArea[testArea].failed++;
+        var exceptionKey = testArea + '::' + content + '||' + (traceId || 'EXCEPTION');
         recordFailure(exceptionKey, {
           stage: 'Exception',
           agentName: 'Exception',
@@ -800,6 +823,18 @@ Scenario: Run all enabled tests from Google Sheets
   * karate.log('Failed:', results.failed)
   * def passRate = allTestData.length > 0 ? Math.round((results.passed / allTestData.length) * 100) : 0
   * karate.log('Pass Rate:', passRate + '%')
+  * karate.log('--------------------------------------------')
+  * eval
+    """
+    var areaNames = Object.keys(results.byArea);
+    if (areaNames.length > 0) {
+      karate.log('Per Test Area:');
+      for (var a = 0; a < areaNames.length; a++) {
+        var s = results.byArea[areaNames[a]];
+        karate.log('  ' + areaNames[a] + ': ' + s.passed + ' passed, ' + (s.warnings || 0) + ' warned, ' + s.failed + ' failed');
+      }
+    }
+    """
   * karate.log('============================================')
 
   * eval
@@ -808,25 +843,46 @@ Scenario: Run all enabled tests from Google Sheets
     if (warningKeys.length > 0) {
       karate.log('');
       karate.log('================== PASS WITH WARNINGS ==================');
-      for (var w = 0; w < warningKeys.length; w++) {
-        var testWarning = results.testWarnings[warningKeys[w]];
+
+      var warningsByArea = {};
+      for (var wk = 0; wk < warningKeys.length; wk++) {
+        var tw = results.testWarnings[warningKeys[wk]];
+        var wArea = tw.testArea || tw.tenant || 'Unknown';
+        if (!warningsByArea[wArea]) warningsByArea[wArea] = [];
+        warningsByArea[wArea].push(tw);
+      }
+
+      var wAreaNames = Object.keys(warningsByArea);
+      var globalWarnNum = 0;
+      for (var wa = 0; wa < wAreaNames.length; wa++) {
+        var wAreaName = wAreaNames[wa];
+        var wAreaList = warningsByArea[wAreaName];
         karate.log('');
-        karate.log('══════════════════════════════════════════════════════════');
-        karate.log('[WARNED TEST ' + (w + 1) + ' of ' + warningKeys.length + ']');
-        karate.log('Mode:     ' + testWarning.validationMode);
-        karate.log('Message:  ' + testWarning.content);
-        karate.log('Trace ID: ' + testWarning.traceId);
-        karate.log('Tenant:   ' + testWarning.tenant + ' (' + testWarning.tenantId + ')');
-        karate.log('Warnings: ' + testWarning.warnings.length);
-        karate.log('──────────────────────────────────────────────────────────');
-        for (var wy = 0; wy < testWarning.warnings.length; wy++) {
-          var warning = testWarning.warnings[wy];
+        karate.log('╔══════════════════════════════════════════════════════════╗');
+        karate.log('  TEST AREA: ' + wAreaName + ' (' + wAreaList.length + ' test(s) with warnings)');
+        karate.log('╚══════════════════════════════════════════════════════════╝');
+        for (var wai = 0; wai < wAreaList.length; wai++) {
+          globalWarnNum++;
+          var testWarning = wAreaList[wai];
           karate.log('');
-          karate.log('  ' + (wy + 1) + '. ' + warning.stage + ':');
-          karate.log('     ' + warning.error);
-          if (warning.validationReport && warning.validationReport !== warning.error) {
-            karate.log('     ── Validation Report ─────────────────────────');
-            karate.log('     ' + warning.validationReport);
+          karate.log('══════════════════════════════════════════════════════════');
+          karate.log('[WARNED TEST ' + globalWarnNum + ' of ' + warningKeys.length + ']');
+          karate.log('Mode:     ' + testWarning.validationMode);
+          karate.log('Area:     ' + (testWarning.testArea || 'N/A'));
+          karate.log('Message:  ' + testWarning.content);
+          karate.log('Trace ID: ' + testWarning.traceId);
+          karate.log('Tenant:   ' + testWarning.tenant + ' (' + testWarning.tenantId + ')');
+          karate.log('Warnings: ' + testWarning.warnings.length);
+          karate.log('──────────────────────────────────────────────────────────');
+          for (var wy = 0; wy < testWarning.warnings.length; wy++) {
+            var warning = testWarning.warnings[wy];
+            karate.log('');
+            karate.log('  ' + (wy + 1) + '. ' + warning.stage + ':');
+            karate.log('     ' + warning.error);
+            if (warning.validationReport && warning.validationReport !== warning.error) {
+              karate.log('     ── Validation Report ─────────────────────────');
+              karate.log('     ' + warning.validationReport);
+            }
           }
         }
       }
@@ -838,43 +894,63 @@ Scenario: Run all enabled tests from Google Sheets
     if (failureKeys.length > 0) {
       karate.log('');
       karate.log('================== FAILED TESTS DETAILS ==================');
-      for (var i = 0; i < failureKeys.length; i++) {
-        var testFailure = results.testFailures[failureKeys[i]];
-        karate.log('');
-        karate.log('══════════════════════════════════════════════════════════');
-        karate.log('[FAILED TEST ' + (i + 1) + ' of ' + failureKeys.length + ']');
-        karate.log('Mode:     ' + testFailure.validationMode);
-        karate.log('Message:  ' + testFailure.content);
-        karate.log('Trace ID: ' + testFailure.traceId);
-        karate.log('Tenant:   ' + testFailure.tenant + ' (' + testFailure.tenantId + ')');
-        karate.log('Failures: ' + testFailure.failures.length);
-        karate.log('──────────────────────────────────────────────────────────');
 
-        for (var j = 0; j < testFailure.failures.length; j++) {
-          var failure = testFailure.failures[j];
+      var failuresByArea = {};
+      for (var fk = 0; fk < failureKeys.length; fk++) {
+        var tf = results.testFailures[failureKeys[fk]];
+        var fArea = tf.testArea || tf.tenant || 'Unknown';
+        if (!failuresByArea[fArea]) failuresByArea[fArea] = [];
+        failuresByArea[fArea].push(tf);
+      }
+
+      var fAreaNames = Object.keys(failuresByArea);
+      var globalFailNum = 0;
+      for (var fa = 0; fa < fAreaNames.length; fa++) {
+        var fAreaName = fAreaNames[fa];
+        var fAreaList = failuresByArea[fAreaName];
+        karate.log('');
+        karate.log('╔══════════════════════════════════════════════════════════╗');
+        karate.log('  TEST AREA: ' + fAreaName + ' (' + fAreaList.length + ' test(s) failed)');
+        karate.log('╚══════════════════════════════════════════════════════════╝');
+        for (var fai = 0; fai < fAreaList.length; fai++) {
+          globalFailNum++;
+          var testFailure = fAreaList[fai];
           karate.log('');
-          karate.log('  ' + (j + 1) + '. ' + failure.stage + ':');
-          karate.log('     ' + failure.error);
-          if (failure.validationReport && failure.validationReport !== failure.error) {
-            karate.log('     ── Validation Report ─────────────────────────');
-            karate.log('     ' + failure.validationReport);
-          }
-          if (failure.parsedAnalysis) {
-            karate.log('     ── Analyser Details ──────────────────────────');
-            karate.log('     Result: ' + failure.parsedAnalysis.result);
-            if (failure.parsedAnalysis.intent) {
-              karate.log('     Intent: ' + failure.parsedAnalysis.intent);
+          karate.log('══════════════════════════════════════════════════════════');
+          karate.log('[FAILED TEST ' + globalFailNum + ' of ' + failureKeys.length + ']');
+          karate.log('Mode:     ' + testFailure.validationMode);
+          karate.log('Area:     ' + (testFailure.testArea || 'N/A'));
+          karate.log('Message:  ' + testFailure.content);
+          karate.log('Trace ID: ' + testFailure.traceId);
+          karate.log('Tenant:   ' + testFailure.tenant + ' (' + testFailure.tenantId + ')');
+          karate.log('Failures: ' + testFailure.failures.length);
+          karate.log('──────────────────────────────────────────────────────────');
+          for (var j = 0; j < testFailure.failures.length; j++) {
+            var failure = testFailure.failures[j];
+            karate.log('');
+            karate.log('  ' + (j + 1) + '. ' + failure.stage + ':');
+            karate.log('     ' + failure.error);
+            if (failure.validationReport && failure.validationReport !== failure.error) {
+              karate.log('     ── Validation Report ─────────────────────────');
+              karate.log('     ' + failure.validationReport);
             }
-            if (failure.parsedAnalysis.pipelineValidation) {
-              karate.log('     Pipeline Validation: ' + failure.parsedAnalysis.pipelineValidation);
+            if (failure.parsedAnalysis) {
+              karate.log('     ── Analyser Details ──────────────────────────');
+              karate.log('     Result: ' + failure.parsedAnalysis.result);
+              if (failure.parsedAnalysis.intent) {
+                karate.log('     Intent: ' + failure.parsedAnalysis.intent);
+              }
+              if (failure.parsedAnalysis.pipelineValidation) {
+                karate.log('     Pipeline Validation: ' + failure.parsedAnalysis.pipelineValidation);
+              }
+              if (failure.parsedAnalysis.anomalies) {
+                karate.log('     Anomalies & Issues: ' + failure.parsedAnalysis.anomalies);
+              }
+              if (failure.parsedAnalysis.qualityAssessment) {
+                karate.log('     Response Quality Assessment: ' + failure.parsedAnalysis.qualityAssessment);
+              }
+              karate.log('     ──────────────────────────────────────────');
             }
-            if (failure.parsedAnalysis.anomalies) {
-              karate.log('     Anomalies & Issues: ' + failure.parsedAnalysis.anomalies);
-            }
-            if (failure.parsedAnalysis.qualityAssessment) {
-              karate.log('     Response Quality Assessment: ' + failure.parsedAnalysis.qualityAssessment);
-            }
-            karate.log('     ──────────────────────────────────────────');
           }
         }
       }
@@ -932,6 +1008,7 @@ Scenario: Run all enabled tests from Google Sheets
         warnings: results.warnings,
         failed: results.failed,
         passRate: passRate,
+        byArea: results.byArea,
         warningResults: warningArray,
         failures: failureArray
       };
@@ -945,7 +1022,7 @@ Scenario: Run all enabled tests from Google Sheets
       var csvLines = [];
 
       if (validationModeName === 'ai-judge') {
-        csvLines.push(['Timestamp','Tenant','TenantId','Message','TraceId','Validation Mode','Stage','Status','Result','Intent','Pipeline Validation','Anomalies & Issues','Response Quality Assessment','Error Details'].join(','));
+        csvLines.push(['Timestamp','Tenant','TenantId','Test Area','Message','TraceId','Validation Mode','Stage','Status','Result','Intent','Pipeline Validation','Anomalies & Issues','Response Quality Assessment','Error Details'].join(','));
         for (var wi = 0; wi < warningArray.length; wi++) {
           var testWarning = warningArray[wi];
           for (var wj = 0; wj < testWarning.warnings.length; wj++) {
@@ -954,6 +1031,7 @@ Scenario: Run all enabled tests from Google Sheets
               escapeCsv(timestamp),
               escapeCsv(testWarning.tenant || ''),
               escapeCsv(testWarning.tenantId || ''),
+              escapeCsv(testWarning.testArea || ''),
               escapeCsv(testWarning.content || ''),
               escapeCsv(testWarning.traceId || 'N/A'),
               escapeCsv(validationModeName),
@@ -976,6 +1054,7 @@ Scenario: Run all enabled tests from Google Sheets
               escapeCsv(timestamp),
               escapeCsv(testFailure.tenant || ''),
               escapeCsv(testFailure.tenantId || ''),
+              escapeCsv(testFailure.testArea || ''),
               escapeCsv(testFailure.content || ''),
               escapeCsv(testFailure.traceId || 'N/A'),
               escapeCsv(validationModeName),
@@ -991,7 +1070,7 @@ Scenario: Run all enabled tests from Google Sheets
           }
         }
       } else {
-        csvLines.push(['Timestamp','Tenant','TenantId','Message','TraceId','Validation Mode','Status','Result','Intent','Pipeline Validation','Anomalies & Issues','Response Quality Assessment','Error Details'].join(','));
+        csvLines.push(['Timestamp','Tenant','TenantId','Test Area','Message','TraceId','Validation Mode','Status','Result','Intent','Pipeline Validation','Anomalies & Issues','Response Quality Assessment','Error Details'].join(','));
         for (var k = 0; k < failureArray.length; k++) {
           var analyserFailure = failureArray[k];
           for (var m = 0; m < analyserFailure.failures.length; m++) {
@@ -1000,6 +1079,7 @@ Scenario: Run all enabled tests from Google Sheets
               escapeCsv(timestamp),
               escapeCsv(analyserFailure.tenant || ''),
               escapeCsv(analyserFailure.tenantId || ''),
+              escapeCsv(analyserFailure.testArea || ''),
               escapeCsv(analyserFailure.content || ''),
               escapeCsv(analyserFailure.traceId || 'N/A'),
               escapeCsv(validationModeName),

@@ -121,6 +121,65 @@
     return enabledTests;
   }
 
+  /**
+   * Returns true when the sheet uses the column-pair format where every odd column
+   * (0-indexed) is a test-area header and every even column is its "Enabled" flag.
+   * Detection rule: the second header (index 1) is "enabled" (case-insensitive).
+   */
+  function isColumnPairFormat(headers) {
+    return headers.length >= 2 && headers[1].toLowerCase().trim() === 'enabled';
+  }
+
+  /**
+   * Parses already-fetched CSV lines using the column-pair format.
+   * Columns are processed in pairs: (testAreaName, Enabled), (testAreaName, Enabled), …
+   * Returns a flat array of enabled test cases, each with a `testArea` property.
+   */
+  function parseTestDataByColumns(lines, headers) {
+    var enabledTestCases = [];
+
+    for (var col = 0; col + 1 < headers.length; col += 2) {
+      var testArea = headers[col].trim();
+      if (!testArea) continue;
+
+      var areaTotal = 0;
+      var areaEnabled = 0;
+      for (var row = 1; row < lines.length; row++) {
+        var values = parseCsvLine(lines[row]);
+        var content = col < values.length ? values[col].trim() : '';
+        var enabledVal = (col + 1) < values.length ? ('' + values[col + 1]).trim() : '';
+
+        if (!content) continue;
+        areaTotal++;
+
+        if (enabledVal.toLowerCase() === 'true') {
+          enabledTestCases.push({ content: content, testArea: testArea });
+          areaEnabled++;
+        }
+      }
+
+      karate.log('Column-pair area "' + testArea + '":', areaTotal, 'rows,', areaEnabled, 'enabled');
+    }
+
+    return enabledTestCases;
+  }
+
+  /**
+   * Public convenience function: reads a sheet using the column-pair format.
+   * Columns are read in pairs: (testAreaName, Enabled), (testAreaName, Enabled), …
+   * Returns an array of enabled test cases with a `testArea` field.
+   */
+  function getTestDataByColumns(spreadsheetId, sheetName) {
+    var lines = fetchSheetAsCsv(spreadsheetId, sheetName);
+    if (!lines || lines.length < 2) return [];
+
+    var headers = parseCsvLine(lines[0]);
+    var result = parseTestDataByColumns(lines, headers);
+
+    karate.log('Loaded test data by columns for', sheetName + ':', result.length, 'total enabled test cases');
+    return result;
+  }
+
   function getConfigValues(spreadsheetId) {
     // Read key-value pairs from 'config' sheet
     var lines = fetchSheetAsCsv(spreadsheetId, 'config');
@@ -198,13 +257,33 @@
       if (sheetName && sheetName.indexOf('.csv') > -1) {
         sheetName = sheetName.replace('.csv', '');
       }
-      var testData = getTestDataForTenant(spreadsheetId, sheetName);
+
+      // Auto-detect format: column-pair if 2nd header is "Enabled", else legacy row format
+      var lines = fetchSheetAsCsv(spreadsheetId, sheetName);
+      var testData = [];
+
+      if (lines && lines.length > 0) {
+        var headers = parseCsvLine(lines[0]);
+        if (isColumnPairFormat(headers)) {
+          karate.log('Detected column-pair format for sheet:', sheetName);
+          testData = parseTestDataByColumns(lines, headers);
+        } else {
+          karate.log('Detected legacy row format for sheet:', sheetName);
+          var allRows = csvToObjects(lines);
+          for (var k = 0; k < allRows.length; k++) {
+            var r = allRows[k];
+            if (r.enabled === true || r.enabled === 'TRUE' || r.enabled === 'true') {
+              testData.push(r);
+            }
+          }
+          karate.log('Loaded test data for', sheetName + ':', allRows.length, 'total,', testData.length, 'enabled');
+        }
+      }
 
       for (var j = 0; j < testData.length; j++) {
         var row = testData[j];
         row.tenantId = tenant.tenantId;
         row.tenantName = tenant.tenantName;
-        // Add sessionId and visitorId from config sheet
         row.sessionId = sessionId;
         row.visitorId = visitorId;
         allTestData.push(row);
@@ -237,6 +316,7 @@
     csvToObjects: csvToObjects,
     getTenantConfig: getTenantConfig,
     getTestDataForTenant: getTestDataForTenant,
+    getTestDataByColumns: getTestDataByColumns,
     getAllEnabledTestData: getAllEnabledTestData,
     getConfigValues: getConfigValues,
     getEnvironmentFromConfig: getEnvironmentFromConfig,
