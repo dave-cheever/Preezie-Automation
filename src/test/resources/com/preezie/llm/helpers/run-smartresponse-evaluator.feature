@@ -20,7 +20,7 @@ Scenario:
   * def evaluatorPayload =
     """
     {
-      "model": "gpt-4.1-mini",
+      "model": "gpt-5.4-mini",
       "messages": [
         { "role": "system", "content": "#(evaluatorSystem)" },
         { "role": "user", "content": "#(evaluatorUserWithContext)" }
@@ -141,6 +141,5 @@ Scenario:
   * def smartResponseEvaluatorResultOut = evaluatorResult
   * def smartResponseValidationOut = validation
   * def smartResponseLlmCallSucceededOut = llmCallSucceeded
-
 
 
